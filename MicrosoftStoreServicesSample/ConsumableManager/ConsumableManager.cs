@@ -26,9 +26,9 @@ namespace MicrosoftStoreServicesSample
     /// </summary>
     public class ConsumableManager
     {
-        protected IConfiguration _config;
-        protected IStoreServicesClientFactory _storeServicesClientFactory;
-        protected ILogger _logger;
+        private IConfiguration _config;
+        private IStoreServicesClientFactory _storeServicesClientFactory;
+        private ILogger _logger;
 
         public ConsumableManager(IConfiguration config,
                                  IStoreServicesClientFactory storeServicesClientFactory,
@@ -48,13 +48,13 @@ namespace MicrosoftStoreServicesSample
         /// <returns></returns>
         public async Task<string> ConsumeAsync(PendingConsumeRequest request, CorrelationVector cV)
         {
-            var response = new StringBuilder();
+            string response = "";
 
             //  This will cache the request into the pending consume list if
             //  it is not already being tracked.
             await TrackPendingConsumeAsync(request, cV);
 
-            var consumeResult = new CollectionsConsumeResponse();
+            CollectionsConsumeResponse consumeResult;
             var consumeRequest = await CreateConsumeRequestFromPendingRequestAsync(request);
 
             //  Send the request to the Collections service using the 
@@ -73,15 +73,14 @@ namespace MicrosoftStoreServicesSample
                 //  This is a specific consume request error which usually means the user does not have enough
                 //  balance do consume the amount we specified.  The exception should have a ConsumeError that
                 //  we can check.  This means the request did go through and should be removed from the queue.
-                string errorMessage = $"Error attempting to consume {request.RemoveQuantity}" +
-                                      $" from product {request.ProductId} for UserId {request.UserId}: " +
-                                      $"{consumeEx.ConsumeErrorInformation.Code}, {consumeEx.ConsumeErrorInformation.Message}";
+                response = $"Error attempting to consume {request.RemoveQuantity}" +
+                           $" from product {request.ProductId} for UserId {request.UserId}: " +
+                           $"{consumeEx.ConsumeErrorInformation.Code}, {consumeEx.ConsumeErrorInformation.Message}";
 
-                _logger.ServiceWarning(cV.Value, errorMessage, consumeEx);
-                response.Append(errorMessage);
+                _logger.ServiceWarning(cV.Value, response, consumeEx);
 
-                RemovePendingConsume(request, cV);
-                return response.ToString();
+                await RemovePendingConsumeAsync(request, cV);
+                return response;
             }
             catch (Exception ex)
             {
@@ -109,12 +108,8 @@ namespace MicrosoftStoreServicesSample
                 }
             }
 
-            response.AppendFormat("  Consumed {0} from product {1}, new balance is {2} for UserId {3}.  Transaction: {4}\n",
-                                    request.RemoveQuantity,
-                                    consumeResult.ProductId,
-                                    consumeResult.NewQuantity,
-                                    request.UserId,
-                                    consumeResult.TrackingId);
+            response = $"  Consumed {request.RemoveQuantity} from product {consumeResult.ProductId}, " +
+                       $"new balance is {consumeResult.NewQuantity} for UserId {request.UserId}.  Transaction: {consumeResult.TrackingId}\n";
 
             //  TODO: Your own server logic here on granting the item to the user's
             //        account within your own game service / database
@@ -125,16 +120,16 @@ namespace MicrosoftStoreServicesSample
             if (!string.IsNullOrEmpty(request.UserPurchaseId))
             {
                 var clawManager = new ClawbackManager(_config,
-                                                        _storeServicesClientFactory,
-                                                        _logger);
+                                                      _storeServicesClientFactory,
+                                                      _logger);
                 await clawManager.AddConsumeToClawbackQueueAsync(request, cV);
             }
             
             //  We have now taken action on the results of the consume and added the balance to the
             //  user's account if it succeeded,  we can now remove this from the pending consume list
-            RemovePendingConsume(request, cV);
+            await RemovePendingConsumeAsync(request, cV);
 
-            return response.ToString();
+            return response;
         }
 
         /// <summary>
@@ -262,7 +257,7 @@ namespace MicrosoftStoreServicesSample
                     if (!dbContext.PendingConsumeRequests.Where(b => b.TrackingId == request.TrackingId).Any())
                     {
                         await dbContext.PendingConsumeRequests.AddAsync(request);
-                        dbContext.SaveChanges();
+                        await dbContext.SaveChangesAsync();
                         _logger.AddPendingTransaction(cV.Increment(),
                                                       request.UserId,
                                                       request.TrackingId,
@@ -286,12 +281,12 @@ namespace MicrosoftStoreServicesSample
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        private void RemovePendingConsume(PendingConsumeRequest request, CorrelationVector cV)
+        private async Task RemovePendingConsumeAsync(PendingConsumeRequest request, CorrelationVector cV)
         {
             using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
             {
                 dbContext.PendingConsumeRequests.Remove(request);
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync();
             }
             _logger.RemovePendingTransaction(cV.Increment(),
                                              request.UserId,
@@ -362,8 +357,7 @@ namespace MicrosoftStoreServicesSample
                     }
                     else
                     {
-                        newBalance = userConsumableBalance.Quantity + (int)request.RemoveQuantity;
-                        userConsumableBalance.Quantity = newBalance;
+                        userConsumableBalance.Quantity += (int)request.RemoveQuantity;
                     }
 
                     await dbContext.SaveChangesAsync();
@@ -399,15 +393,14 @@ namespace MicrosoftStoreServicesSample
                     if (userConsumableBalance == null)
                     {
                         //  This doesn't exist yet, but there is a revoke being reported
-                        throw new ArgumentNullException($"Clawback attempted for {ammountToRevoke} of product {productId} on user {userId} but user balance was not found in the balance DB.");
+                        throw new InvalidOperationException($"Clawback attempted for {ammountToRevoke} of product {productId} on user {userId} but user balance was not found in the balance DB.");
                     }
                     else
                     {
                         //  NOTE: This test method can make a user's balance go below 0.  A production
                         //  server would probably want to keep the balance at 0 and have another
                         //  balance noting the discrepancy that the user has vs what they spent.
-                        newBalance = userConsumableBalance.Quantity - ammountToRevoke;
-                        userConsumableBalance.Quantity = newBalance;
+                        userConsumableBalance.Quantity -= ammountToRevoke;
                     }
 
                     await dbContext.SaveChangesAsync();

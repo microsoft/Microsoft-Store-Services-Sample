@@ -72,7 +72,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             //  get the UserCollectionsId and UserPurchaseId and return
             //  them to us
             FinalizeLoggingCv();
-            return JsonConvert.SerializeObject(response);
+            return new OkObjectResult(JsonConvert.SerializeObject(response));
         }
 
         ////////////////////////////////////////////////////////////////////
@@ -134,7 +134,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             var finalResponse = response.ToString();
-            return finalResponse;
+            return new OkObjectResult(finalResponse);
         }
 
         /// <summary>
@@ -200,7 +200,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             var finalResponse = response.ToString();
-            return finalResponse;
+            return new OkObjectResult(finalResponse);
         }
 
         /// <summary>
@@ -260,7 +260,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             var finalResponse = response.ToString();
-            return finalResponse;
+            return new OkObjectResult(finalResponse);
         }
 
         /// <summary>
@@ -282,7 +282,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             response.Append(await clawManager.RunClawbackReconciliationAsync(_cV));
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
 
         /// <summary>
@@ -314,7 +314,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
 
         /// <summary>
@@ -343,7 +343,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
 
         /// <summary>
@@ -374,7 +374,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
 
         /// <summary>
@@ -406,7 +406,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
 
         /// <summary>
@@ -437,7 +437,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
 
         /// <summary>

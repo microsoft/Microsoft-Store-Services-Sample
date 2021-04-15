@@ -44,7 +44,7 @@ namespace MicrosoftStoreServicesSample.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public async Task<ActionResult<string>> AccessTokens()
+        public async Task<ActionResult<string>> RetrieveAccessTokens()
         {
             InitializeLoggingCv();
             var response = new ClientAccessTokensResponse
@@ -61,14 +61,16 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
             catch (Exception e)
             {
-                return e.Message;
+                _logger.ServiceError(_cV.Value, "Error retrieving the access tokens", e);
+                FinalizeLoggingCv();
+                return "Error retrieving the access tokens";
             }
 
             //  Send these access tokens to the client for them to then
             //  get the UserCollectionsId and UserPurchaseId and return
             //  them to us
             FinalizeLoggingCv();
-            return JsonConvert.SerializeObject(response);
+            return new OkObjectResult(JsonConvert.SerializeObject(response));
         }
 
         /// <summary>
@@ -179,7 +181,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
 
         /// <summary>
@@ -222,7 +224,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             response.Append(await consumeManager.ConsumeAsync(pendingRequest, _cV));
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
 
         /// <summary>
@@ -288,7 +290,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                                      pendingRequest.RemoveQuantity,
                                      ex.Message,
                                      ex);
-                return ex.Message;
+                return new OkObjectResult("Error consuming the request");
             }
 
             //  This is only a test function here so that we can cache
@@ -307,7 +309,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                                   pendingRequest.RemoveQuantity);
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
 
         /// <summary>
@@ -336,7 +338,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
 
         /// <summary>
@@ -370,7 +372,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             _logger.RetryPendingConsumesResponse(_cV.Increment(), finalResponse);
 
             FinalizeLoggingCv();
-            return finalResponse;
+            return new OkObjectResult(finalResponse);
         }
 
         /// <summary>
@@ -397,7 +399,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             FinalizeLoggingCv();
-            return response.ToString();
+            return new OkObjectResult(response.ToString());
         }
     }
 }

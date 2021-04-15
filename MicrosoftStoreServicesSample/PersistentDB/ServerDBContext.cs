@@ -26,26 +26,5 @@ namespace MicrosoftStoreServicesSample.PersistentDB
         public DbSet<UserConsumableBalance> UserBalances { get; set; }
         public DbSet<ClawbackQueueItem> ClawbackQueue { get; set; }
         public DbSet<ClawbackActionItem> ClawbackActionItems { get; set; }
-
-        public override int SaveChanges()
-        {
-            foreach (var entry in ChangeTracker.Entries()
-                    .Where(e => e.Metadata.IsOwned() && e.State == EntityState.Added))
-            {
-                var ownership = entry.Metadata.FindOwnership();
-                var parentKey = ownership.Properties
-                                 .Select(p => entry.Property(p.Name).CurrentValue).ToArray();
-                var parent = this.Find(ownership.PrincipalEntityType.ClrType, parentKey);
-                if (parent != null)
-                {
-                    var parentEntry = this.Entry(parent);
-                    if (parentEntry.State != EntityState.Added)
-                    {
-                        entry.State = EntityState.Modified;
-                    }
-                }
-            }
-            return base.SaveChanges();
-        }
     }
 }

@@ -13,13 +13,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MicrosoftStoreServicesSample
 {
-    /// <summary>
-    /// This class is used to track the clawback items that need action
-    /// and the ones that we have taken action on.  This class inherits from
-    /// OrderLineItem instead of ClwabackItem to simplify the database and 
-    /// not having to pull the list of OrderLineItems in a ClawbackItem.
-    /// Most ClawbackItems would only include a single Line Item anyways.
-    /// </summary>
     public class ClawbackActionItem : OrderLineItem
     {
         public ClawbackActionItemState State { get; set; }
@@ -101,14 +94,12 @@ namespace MicrosoftStoreServicesSample
     public class ClawbackCandidate
     {
         [JsonProperty("tid")] public string TrackingId { get; set; }
-        [JsonProperty("id")] public string UserId { get; set; }
-        [JsonProperty("d")] public DateTime ConsumeDate { get; set; }
-        [JsonProperty("q")] public uint ConsumedQuantity { get; set; }
+        [JsonProperty("id")]  public string UserId { get; set; }
+        [JsonProperty("d")] public DateTime ConsumeDate { get; set; } = DateTime.MaxValue;
+        [JsonProperty("q")]     public uint ConsumedQuantity { get; set; }
 
         public ClawbackCandidate()
-        {
-            ConsumeDate = DateTime.MaxValue;
-        }
+        { }
 
         public ClawbackCandidate(ClawbackQueueItem QueueItem)
         {
@@ -119,11 +110,32 @@ namespace MicrosoftStoreServicesSample
         }
     }
 
+    /// <summary>
+    /// Tracks the current state of the clawback action items through the discovery and reconciliation process.
+    /// </summary>
     public enum ClawbackActionItemState
     {
+        /// <summary>
+        /// This action item is currently being worked on and possible clawback candidates are being identified and added to it.
+        /// </summary>
         Building = 0,
+
+        /// <summary>
+        /// Action item is done building and has a list of candidates.  It is now pending for the next step of reconciliation once
+        /// all other action items are done building.
+        /// </summary>
         Pending,
+
+        /// <summary>
+        /// This action item is currently being reconciled by identifying which candidate is best and then resolving the action
+        /// needed for that candidate's balance and account.
+        /// </summary>
         Running,
+
+        /// <summary>
+        /// This action item was previously reconciled and action was taken.  This can now be ignored if it comes up in future
+        /// clawback calls.
+        /// </summary>
         Completed
     }
 }

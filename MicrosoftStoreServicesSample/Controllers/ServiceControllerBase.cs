@@ -80,7 +80,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             string userId = this.HttpContext.Request.Headers["Authorization"];
             if(userId == null)
             {
-                userId="NoUserIdProvided";
+                userId = "NoUserIdProvided";
             }
             return userId;
         }

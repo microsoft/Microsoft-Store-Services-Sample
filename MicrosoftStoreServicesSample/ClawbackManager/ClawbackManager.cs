@@ -49,7 +49,7 @@ namespace MicrosoftStoreServicesSample
                 using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
                 {
                     await dbContext.ClawbackQueue.AddAsync(clawbackQueueItem);
-                    dbContext.SaveChanges();
+                    await dbContext.SaveChangesAsync();
                 }
                 _logger.AddConsumeToClawbackQueue(cV.Increment(),
                                    request.UserId,
@@ -65,6 +65,12 @@ namespace MicrosoftStoreServicesSample
             return true;
         }
 
+        /// <summary>
+        /// Provides all the outstanding ClawbackQueueItems that we should run reconciliation on and check for
+        /// any refunds that were issued.
+        /// </summary>
+        /// <param name="cV"></param>
+        /// <returns></returns>
         public List<ClawbackQueueItem> GetClawbackQueue(CorrelationVector cV)
         {
             using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
@@ -95,8 +101,7 @@ namespace MicrosoftStoreServicesSample
             {
                 using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
                 {
-                    var itemsToRemove = dbContext.ClawbackQueue.Where(
-                    b => b.TrackingId == trackingId).ToList();
+                    var itemsToRemove = dbContext.ClawbackQueue.Where(b => b.TrackingId == trackingId);
                     foreach(var item in itemsToRemove)
                     {
                         dbContext.Remove(item);
@@ -256,7 +261,7 @@ namespace MicrosoftStoreServicesSample
                                     {
                                         //  We should have a unique LineItemId
                                         await dbContext.ClawbackActionItems.AddAsync(actionItem);
-                                        dbContext.SaveChanges();
+                                        await dbContext.SaveChangesAsync();
                                     }
                                 }
                                 catch (Exception ex)
@@ -297,7 +302,7 @@ namespace MicrosoftStoreServicesSample
                                             {
                                                 candidates.Add(candidate);
                                                 existingActionItem.SetCandidatesJSON(candidates);
-                                                dbContext.SaveChanges();
+                                                await dbContext.SaveChangesAsync();
                                             }
                                         }
                                     }
@@ -331,7 +336,7 @@ namespace MicrosoftStoreServicesSample
                 {
                     item.State = ClawbackActionItemState.Pending;
                 }
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync();
             }
 
             //  Step 5:
@@ -404,7 +409,7 @@ namespace MicrosoftStoreServicesSample
                 {
                     //  Mark entity as modified to save the changes we made outside of the dbContext
                     dbContext.Entry(pendingItem).State = EntityState.Modified;
-                    dbContext.SaveChanges();
+                    await dbContext.SaveChangesAsync();
                 }
 
                 //  Step 6.d:
