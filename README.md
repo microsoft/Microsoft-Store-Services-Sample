@@ -1,14 +1,14 @@
-# Project
+# Microsoft.StoreServices Sample
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+## Goals
 
-As the maintainer of this project, please make a few updates:
+Provide a sample to highlight the use of the Microsoft.StoreServices namespace to simplify the proccess of authenticating with and calling the Microsoft Store Services from your own back-end services.  This sample also provides example logic for managing consumable products and reconciling refunded purchases with the clawback service. 
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+For more information on the Microsoft.StoreServices namespace please see [https://github.com/microsoft/Microsoft-Store-Services](https://github.com/microsoft/Microsoft-Store-Services). 
+
+## Setup and additional information
+
+To configure the sample, see the Sample_Configuration_Guide.docx and Readme.docx for additional release information.
 
 ## Contributing
 
@@ -23,6 +23,15 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Legal Notices
+Microsoft and any contributors grant you a license to the Microsoft documentation and other content in this repository under the Creative Commons Attribution 4.0 International Public License, see the LICENSE file, and grant you a license to any code in the repository under the MIT License, see the LICENSE-CODE file.
+
+Microsoft, Windows, Microsoft Azure and/or other Microsoft products and services referenced in the documentation may be either trademarks or registered trademarks of Microsoft in the United States and/or other countries. The licenses for this project do not grant you rights to use any Microsoft names, logos, or trademarks. Microsoft's general trademark guidelines can be found at http://go.microsoft.com/fwlink/?LinkID=254653.
+
+Privacy information can be found at https://privacy.microsoft.com/en-us/
+
+Microsoft and any contributors reserve all others rights, whether under their respective copyrights, patents, or trademarks, whether by implication, estoppel or otherwise.
 
 ## Trademarks
 

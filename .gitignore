@@ -348,3 +348,11 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+#special section for MicrosoftStoreService Sample
+MicrosoftStoreServicesSample/bin/*
+MicrosoftStoreServicesSample/obj/*
+MicrosoftStoreServicesSample/Properties/*
+MicrosoftStoreServicesSample/.config/*
+MicrosoftStoreServicesSample/Migrations/*
+MicrosoftStoreServicesSample/appsettings*
