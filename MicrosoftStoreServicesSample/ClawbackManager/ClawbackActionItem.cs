@@ -95,8 +95,8 @@ namespace MicrosoftStoreServicesSample
     {
         [JsonProperty("tid")] public string TrackingId { get; set; }
         [JsonProperty("id")]  public string UserId { get; set; }
-        [JsonProperty("d")] public DateTime ConsumeDate { get; set; } = DateTime.MaxValue;
-        [JsonProperty("q")]     public uint ConsumedQuantity { get; set; }
+        [JsonProperty("d")]   public DateTime ConsumeDate { get; set; } = DateTime.MaxValue;
+        [JsonProperty("q")]   public uint ConsumedQuantity { get; set; }
 
         public ClawbackCandidate()
         { }

@@ -101,11 +101,12 @@ namespace MicrosoftStoreServicesSample
             {
                 using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
                 {
-                    var itemsToRemove = dbContext.ClawbackQueue.Where(b => b.TrackingId == trackingId);
-                    foreach(var item in itemsToRemove)
+                    var clwabackItem = new ClawbackQueueItem()
                     {
-                        dbContext.Remove(item);
-                    }
+                        TrackingId = trackingId
+                    };
+
+                    dbContext.ClawbackQueue.Remove(clwabackItem);
                     await dbContext.SaveChangesAsync();
                 }
             }
@@ -115,6 +116,13 @@ namespace MicrosoftStoreServicesSample
             }
         }
 
+        /// <summary>
+        /// This is the main logic that checks for any refunds within the past 90 days of all our fulfilled
+        /// consumables.  This is an example of the flow that works with a small sample data set.  This code
+        /// and the supporting functions would need to be updated to scale better to a larger data set.
+        /// </summary>
+        /// <param name="cV"></param>
+        /// <returns></returns>
         public async Task<string> RunClawbackReconciliationAsync(CorrelationVector cV)
         {
             var response = new StringBuilder();

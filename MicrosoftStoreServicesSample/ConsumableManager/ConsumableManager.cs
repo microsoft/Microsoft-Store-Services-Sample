@@ -84,9 +84,9 @@ namespace MicrosoftStoreServicesSample
             }
             catch (Exception ex)
             {
-                if (ex is HttpRequestException || ex is TaskCanceledException)
+                if (ex is HttpRequestException)
                 {
-                    //  These exceptions mean that we didn't get back a response and so we
+                    //  This exception mean that we didn't get back a response and so we
                     //  are unsure if the consume happened or not on the Collections side.
                     //  So, we keep this consume pending to retry and verify it later
                     _logger.ConsumeError(cV.Value,
@@ -95,6 +95,23 @@ namespace MicrosoftStoreServicesSample
                                          request.ProductId,
                                          request.RemoveQuantity,
                                          "Error getting consume response, keeping request in the pending queue",
+                                         ex);
+
+                    //  Return here so that we don't remove this consume from the pending
+                    //  cache.
+                    return "Error getting consume response, keeping request in the pending queue";
+                }
+                else if (ex is TaskCanceledException)
+                {
+                    //  The call was canceled from our side, but we may have already sent out the request,
+                    //  so we need to hold onto this in the pending consumes to ensure we give the user
+                    //  credit if it did go through.
+                    _logger.ConsumeError(cV.Value,
+                                         request.UserId,
+                                         request.TrackingId,
+                                         request.ProductId,
+                                         request.RemoveQuantity,
+                                         "Consume was canceled, keeping request in the pending queue",
                                          ex);
 
                     //  Return here so that we don't remove this consume from the pending
