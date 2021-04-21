@@ -2,7 +2,7 @@
 
 ## Goals
 
-Provide a sample to highlight the use of the Microsoft.StoreServices namespace to simplify the proccess of authenticating with and calling the Microsoft Store Services from your own back-end services.  This sample also provides example logic for managing consumable products and reconciling refunded purchases with the clawback service. 
+Provide a sample to highlight the use of the Microsoft.StoreServices namespace to simplify the process of authenticating with and calling the Microsoft Store Services from your own back-end services.  This sample also provides example logic for managing consumable products and reconciling refunded purchases with the clawback service. 
 
 For more information on the Microsoft.StoreServices namespace please see [https://github.com/microsoft/Microsoft-Store-Services](https://github.com/microsoft/Microsoft-Store-Services). 
 
