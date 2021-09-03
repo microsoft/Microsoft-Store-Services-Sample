@@ -10,6 +10,7 @@ namespace Microsoft.StoreServices
     public class ClientCollectionsQueryRequest
     {
         public string UserCollectionsId { get; set; }
+        public string sbx { get; set; }
     }
 
     public class ClientConsumeRequest

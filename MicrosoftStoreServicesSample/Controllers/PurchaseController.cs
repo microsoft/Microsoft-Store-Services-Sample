@@ -99,12 +99,29 @@ namespace MicrosoftStoreServicesSample.Controllers
                 return BadRequest("Request body missing PurchaseId. ex: {\"PurchaseId\": \"...\"}");
             }
 
+            bool includeJson = false;
+            if(Request.Headers.ContainsKey("User-Agent"))
+            {
+                string userAgent = Request.Headers["User-Agent"];
+                if (!string.IsNullOrEmpty(userAgent) && userAgent.Equals("Microsoft.StoreServicesClientSample"))
+                {
+                    //  This call is from the Client sample that is tied to this sample, so include the added JSON
+                    //  in the response body so that it can use those values to update the UI.
+                    includeJson = true;
+                }
+            }
+
             var response = new StringBuilder("");
 
             var recurrenceRequest = new RecurrenceQueryRequest
             {
                 UserPurchaseId = clientRequest.UserPurchaseId
             };
+
+            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            {
+                recurrenceRequest.SandboxId = clientRequest.sbx;
+            }
 
             var recurrenceResults = new RecurrenceQueryResponse();
             using (var storeClient = _storeServicesClientFactory.CreateClient())
@@ -115,22 +132,27 @@ namespace MicrosoftStoreServicesSample.Controllers
             try
             {
                 response.Append(
-                    "| ProductId    | A. Renew | State     | Start Date             | Expire Date (Without Grace)          |\n" +
-                    "|-----------------------------------------------------------------------------------------------------|\n");
+                    "| ProductId    | Renew | State     | Start Date                    | Expire Date (With Grace)      |\n" +
+                    "|--------------------------------------------------------------------------------------------------|\n");
 
                 foreach (var item in recurrenceResults.Items)
                 {
-                    response.AppendFormat("| {0,-12} | {1,-8} | {2,-9} | {3,-22} | {4,-36} |\n",
+                    response.AppendFormat("| {0,-12} | {1,-5} | {2,-9} | {3,-29} | {4,-29} |\n",
                                             item.ProductId,
                                             item.AutoRenew,
                                             item.RecurrenceState,
                                             item.StartTime.ToString(),
-                                            item.ExpirationTime);
+                                            item.ExpirationTimeWithGrace);
                 }
             }
             catch (Exception e)
             {
                 response.Append(e.Message);
+            }
+            if(includeJson)
+            {
+                response.Append("RawResponse:");
+                response.Append(JsonConvert.SerializeObject(recurrenceResults));
             }
 
             var finalResponse = response.ToString();
@@ -159,6 +181,19 @@ namespace MicrosoftStoreServicesSample.Controllers
                 return BadRequest("Request body missing RecurrenceId. ex: {\"ChangeType\": \"...\"}, Cancel, Extend, Refund, ToggleAutoRenew");
             }
 
+
+            bool includeJson = false;
+            if (Request.Headers.ContainsKey("User-Agent"))
+            {
+                string userAgent = Request.Headers["User-Agent"];
+                if (!string.IsNullOrEmpty(userAgent) && userAgent.Equals("Microsoft.StoreServicesClientSample"))
+                {
+                    //  This call is from the Client sample that is tied to this sample, so include the added JSON
+                    //  in the response body so that it can use those values to update the UI.
+                    includeJson = true;
+                }
+            }
+
             var response = new StringBuilder("");
 
             var recurrenceRequest = new RecurrenceChangeRequest
@@ -168,7 +203,17 @@ namespace MicrosoftStoreServicesSample.Controllers
                 RecurrenceId = clientRequest.RecurrenceId
             };
 
-            if(clientRequest.ChangeType == RecurrenceChangeType.Extend.ToString())
+            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            {
+                recurrenceRequest.SandboxId = clientRequest.sbx;
+            }
+
+            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            {
+                recurrenceRequest.SandboxId = clientRequest.sbx;
+            }
+
+            if (clientRequest.ChangeType == RecurrenceChangeType.Extend.ToString())
             {
                 recurrenceRequest.ExtensionTimeInDays = clientRequest.ExtensionTime;
             }
@@ -182,7 +227,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             try
             {
                 response.Append(
-                    "| ProductId    | A. Renew | State     | Start Date             | Expire Date (Without Grace)          |\n" +
+                    "| ProductId    | A. Renew | State     | Start Date             | Expire Date (With Grace)             |\n" +
                     "|-----------------------------------------------------------------------------------------------------|\n");
 
 
@@ -191,12 +236,18 @@ namespace MicrosoftStoreServicesSample.Controllers
                                       recurrenceResult.AutoRenew,
                                       recurrenceResult.RecurrenceState,
                                       recurrenceResult.StartTime.ToString(),
-                                      recurrenceResult.ExpirationTime);
+                                      recurrenceResult.ExpirationTimeWithGrace);
                 
             }
             catch (Exception e)
             {
                 response.Append(e.Message);
+            }
+
+            if (includeJson)
+            {
+                response.Append("RawResponse:");
+                response.Append(JsonConvert.SerializeObject(recurrenceResult));
             }
 
             var finalResponse = response.ToString();

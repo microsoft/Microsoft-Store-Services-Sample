@@ -19,7 +19,7 @@ namespace MicrosoftStoreServicesSample
     {
         [Key] 
         public string TrackingId { get; set; }
-        public DateTime ConsumeDate { get; set; }
+        public DateTimeOffset ConsumeDate { get; set; }
         public string ProductId { get; set; }
         public string UserId { get; set; }
         public string UserPurchaseId { get; set; }

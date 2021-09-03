@@ -16,8 +16,8 @@ namespace MicrosoftStoreServicesSample
     public class ClawbackActionItem : OrderLineItem
     {
         public ClawbackActionItemState State { get; set; }
-        public DateTime OrderRefundedDate { get; set; }
-        public DateTime OrderPurchaseDate { get; set; }
+        public DateTimeOffset OrderRefundedDate { get; set; }
+        public DateTimeOffset OrderPurchaseDate { get; set; }
         public string OrderId { get; set; }
 
         //  Key override for our database
@@ -95,7 +95,7 @@ namespace MicrosoftStoreServicesSample
     {
         [JsonProperty("tid")] public string TrackingId { get; set; }
         [JsonProperty("id")]  public string UserId { get; set; }
-        [JsonProperty("d")]   public DateTime ConsumeDate { get; set; } = DateTime.MaxValue;
+        [JsonProperty("d")]   public DateTimeOffset ConsumeDate { get; set; } = DateTime.MaxValue;
         [JsonProperty("q")]   public uint ConsumedQuantity { get; set; }
 
         public ClawbackCandidate()
