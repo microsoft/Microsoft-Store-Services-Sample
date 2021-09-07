@@ -140,7 +140,15 @@ namespace MicrosoftStoreServicesSample.Controllers
                 queryRequest.SandboxId = clientRequest.sbx;
             }
 
-            queryRequest.EntitlementFilters.Append(EntitlementFilterTypes.Subscription);
+            if (clientRequest.EntitlementFilters != null &&
+                clientRequest.EntitlementFilters.Count > 0)
+            {
+                queryRequest.EntitlementFilters = clientRequest.EntitlementFilters;
+            }
+            else
+            {
+                queryRequest.EntitlementFilters.Append(EntitlementFilterTypes.Subscription);
+            }
 
             //  TODO: Add any other request filtering that your service requires
             //        For example, filtering to specific ProductIds or product types
@@ -179,10 +187,17 @@ namespace MicrosoftStoreServicesSample.Controllers
                         quantityToDisplay = item.Quantity.ToString();
                     }
 
+                    string formattedType = item.ProductKind;
+
+                    if(item.ProductKind == "UnmanagedConsumable")
+                    {
+                        formattedType = "U.Consumable";
+                    }
+
                     response.AppendFormat("| {0,-12} | {1,-3} | {2,-12} | {3,-11} ",
                                             item.ProductId,
                                             quantityToDisplay,
-                                            item.ProductKind,
+                                            formattedType,
                                             item.AcquisitionType);
 
                     //  Check if this is enabled because of a satisfying entitlement from a bundle or subscription

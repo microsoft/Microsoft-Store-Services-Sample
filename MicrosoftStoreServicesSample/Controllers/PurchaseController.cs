@@ -227,17 +227,18 @@ namespace MicrosoftStoreServicesSample.Controllers
             try
             {
                 response.Append(
-                    "| ProductId    | A. Renew | State     | Start Date             | Expire Date (With Grace)             |\n" +
-                    "|-----------------------------------------------------------------------------------------------------|\n");
+                    "| ProductId    | Renew | State     | Start Date                    | Expire Date (With Grace)      |\n" +
+                    "|--------------------------------------------------------------------------------------------------|\n");
 
 
-                response.AppendFormat("| {0,-12} | {1,-8} | {2,-9} | {3,-22} | {4,-36} |\n",
+                response.AppendFormat("| {0,-12} | {1,-5} | {2,-9} | {3,-29} | {4,-29} |\n",
                                       recurrenceResult.ProductId,
                                       recurrenceResult.AutoRenew,
                                       recurrenceResult.RecurrenceState,
                                       recurrenceResult.StartTime.ToString(),
                                       recurrenceResult.ExpirationTimeWithGrace);
                 
+
             }
             catch (Exception e)
             {
@@ -279,6 +280,10 @@ namespace MicrosoftStoreServicesSample.Controllers
             {
                 clawbackRequest.LineItemStateFilter = clientRequest.LineItemStateFilter;
             }
+            else
+            {
+                clawbackRequest.LineItemStateFilter.Add(LineItemStates.Purchased);
+            }
 
             var clawbackResults = new ClawbackQueryResponse();
             using (var storeClient = _storeServicesClientFactory.CreateClient())
@@ -289,19 +294,26 @@ namespace MicrosoftStoreServicesSample.Controllers
             try
             {
                 response.Append(
-                    "| ProductId    | Quantity | State     | Refunded Date          | LineItemId                           |\n" +
-                    "|-----------------------------------------------------------------------------------------------------|\n");
+                    "| ProductId    | Qty | State     | LineItemId                           | Refunded Date                 |\n" +
+                    "|-------------------------------------------------------------------------------------------------------|\n");
 
                 foreach (var item in clawbackResults.Items)
                 {
                     foreach (var lineItem in item.OrderLineItems)
                     {
-                        response.AppendFormat("| {0,-12} | {1,-8} | {2,-9} | {3,-22} | {4,-36} |\n",
+                        //  If the item is in the Purchase state, then we don't show the Refund date
+                        string refundedDate = "";
+                        if(lineItem.LineItemState != LineItemStates.Purchased)
+                        {
+                            refundedDate = item.OrderRefundedDate.ToString();
+                        }
+
+                        response.AppendFormat("| {0,-12} | {1,-3} | {2,-9} | {3,-36} | {4,-29} |\n",
                                               lineItem.ProductId,
                                               lineItem.Quantity,
                                               lineItem.LineItemState,
-                                              item.OrderRefundedDate.ToString(),
-                                              lineItem.LineItemId);
+                                              lineItem.LineItemId,
+                                              item.OrderRefundedDate.ToString());
                     }
                 }
             }
@@ -501,7 +513,6 @@ namespace MicrosoftStoreServicesSample.Controllers
         {
             var response = new StringBuilder("");
             response.Append(
-                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n" +
                     "| Action State | ProductId    | Quantity | LineItemState | Purchased Date         | Refunded Date          | Candidate Id     | Candidate Consume Date | LineItemId                           |\n" +
                     "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
 
@@ -532,7 +543,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                 }
 
                 response.AppendFormat(
-                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
+                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n\n");
             }
 
             return response.ToString();
