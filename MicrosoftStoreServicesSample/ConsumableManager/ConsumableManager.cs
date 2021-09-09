@@ -158,7 +158,7 @@ namespace MicrosoftStoreServicesSample
         {
             //  Check if the UserCollectionsId has expired, if so, refresh it
             var userCollectionsId = new UserStoreId(pendingRequest.UserCollectionsId);
-            if (DateTime.UtcNow > userCollectionsId.Expires)
+            if (DateTime.UtcNow > userCollectionsId.RefreshAfter)
             {
                 using (var storeClient = _storeServicesClientFactory.CreateClient())
                 {
