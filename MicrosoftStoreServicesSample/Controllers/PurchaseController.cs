@@ -151,7 +151,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
             if(includeJson)
             {
-                response.Append("RawResponse:");
+                response.Append("RawResponse: ");
                 response.Append(JsonConvert.SerializeObject(recurrenceResults));
             }
 
@@ -247,7 +247,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
             if (includeJson)
             {
-                response.Append("RawResponse:");
+                response.Append("RawResponse: ");
                 response.Append(JsonConvert.SerializeObject(recurrenceResult));
             }
 

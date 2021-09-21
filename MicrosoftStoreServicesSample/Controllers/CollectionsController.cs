@@ -113,7 +113,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             if (Request.Headers.ContainsKey("User-Agent"))
             {
                 string userAgent = Request.Headers["User-Agent"];
-                if (!string.IsNullOrEmpty(userAgent) && userAgent.Equals("Microsoft.StoreServicesClientSample"))
+                if (!string.IsNullOrEmpty(userAgent) && userAgent == "Microsoft.StoreServicesClientSample")
                 {
                     //  This call is from the Client sample that is tied to this sample, so include the added JSON
                     //  in the response body so that it can use those values to update the UI.
@@ -230,7 +230,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                 //  properly
                 if (includeJson)
                 {
-                    response.Append("RawResponse:");
+                    response.Append("RawResponse: ");
                     response.Append(JsonConvert.SerializeObject(userCollection));
                 }
 

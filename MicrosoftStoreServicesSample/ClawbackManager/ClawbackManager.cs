@@ -141,8 +141,6 @@ namespace MicrosoftStoreServicesSample
                     {
                         _logger.ServiceWarning(cV.Value, $"Unable to remove ClawbackQueueItem with TrackingId {TrackingId}", null);
                     }
-
-                    await dbContext.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
