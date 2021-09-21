@@ -119,6 +119,39 @@ namespace MicrosoftStoreServicesSample
         }
 
         /// <summary>
+        /// Update the Queue item's PurchaseId to a refreshed one
+        /// </summary>
+        /// <param name="TrackingId"></param>
+        /// <param name="NewKeyPurchaseId"></param>
+        /// <param name="cV"></param>
+        /// <returns></returns>
+        private async Task UpdateClawbackQueueItemPurchaseId(String TrackingId, String NewKeyPurchaseId, CorrelationVector cV)
+        {
+            try
+            {
+                using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
+                {
+                    //  We should have a unique LineItemId
+                    var item = dbContext.ClawbackQueue.Find(TrackingId);
+                    
+                    if (item != null)
+                    {
+                        item.UserPurchaseId = NewKeyPurchaseId;
+                        await dbContext.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        _logger.ServiceWarning(cV.Value, $"Unable to remove ClawbackQueueItem with TrackingId {TrackingId}", null);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.ServiceWarning(cV.Value, $"Unable to update the UserPurchaseId for TrackingId {TrackingId}", ex);
+            }
+        }
+
+        /// <summary>
         /// This is the main logic that checks for any refunds within the past 90 days of all our fulfilled
         /// consumables.  This is an example of the flow that works with a small sample data set.  This code
         /// and the supporting functions would need to be updated to scale better to a larger data set.
@@ -159,10 +192,12 @@ namespace MicrosoftStoreServicesSample
                     {
                         //  Check if the UserPurchaseId has expired, if so, refresh it
                         var userPurchaseId = new UserStoreId(clawbackQueueItem.UserPurchaseId);
-                        if (DateTime.UtcNow > userPurchaseId.Expires)
+                        if (DateTime.UtcNow > userPurchaseId.RefreshAfter)
                         {
                             var serviceToken = await storeClient.GetServiceAccessTokenAsync();
                             await userPurchaseId.RefreshStoreId(serviceToken.Token);
+                            //  Update the ClawbackQueueItem with the new Token
+                            await UpdateClawbackQueueItemPurchaseId(clawbackQueueItem.TrackingId, userPurchaseId.Key, cV);
                         }
 
                         //  Create the request with the Revoked and Refunded filters

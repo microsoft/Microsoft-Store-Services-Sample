@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <UserSecretsId>d541f79d-2f04-47de-872e-00c9a8ea1afd</UserSecretsId>
-    <Version>1.0.0</Version>
+    <Version>1.21.09</Version>
     <Authors>Cameron Goodwin</Authors>
     <Company>Microsoft</Company>
     <Description>Sample Service to demonstrate calling the Microsoft Store Services and authenticating with them.</Description>
@@ -35,6 +35,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.36.0" />
   </ItemGroup>
 
   <ItemGroup>

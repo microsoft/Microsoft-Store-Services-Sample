@@ -101,12 +101,29 @@ namespace MicrosoftStoreServicesSample.Controllers
                 return BadRequest("Request body missing PurchaseId. ex: {\"PurchaseId\": \"...\"}");
             }
 
+            bool includeJson = false;
+            if(Request.Headers.ContainsKey("User-Agent"))
+            {
+                string userAgent = Request.Headers["User-Agent"];
+                if (!string.IsNullOrEmpty(userAgent) && userAgent.Equals("Microsoft.StoreServicesClientSample"))
+                {
+                    //  This call is from the Client sample that is tied to this sample, so include the added JSON
+                    //  in the response body so that it can use those values to update the UI.
+                    includeJson = true;
+                }
+            }
+
             var response = new StringBuilder("");
 
             var recurrenceRequest = new RecurrenceQueryRequest
             {
                 UserPurchaseId = clientRequest.UserPurchaseId
             };
+
+            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            {
+                recurrenceRequest.SandboxId = clientRequest.sbx;
+            }
 
             var recurrenceResults = new RecurrenceQueryResponse();
             using (var storeClient = _storeServicesClientFactory.CreateClient())
@@ -117,22 +134,27 @@ namespace MicrosoftStoreServicesSample.Controllers
             try
             {
                 response.Append(
-                    "| ProductId    | A. Renew | State     | Start Date             | Expire Date (Without Grace)          |\n" +
-                    "|-----------------------------------------------------------------------------------------------------|\n");
+                    "| ProductId    | Renew | State     | Start Date                    | Expire Date (With Grace)      |\n" +
+                    "|--------------------------------------------------------------------------------------------------|\n");
 
                 foreach (var item in recurrenceResults.Items)
                 {
-                    response.AppendFormat("| {0,-12} | {1,-8} | {2,-9} | {3,-22} | {4,-36} |\n",
+                    response.AppendFormat("| {0,-12} | {1,-5} | {2,-9} | {3,-29} | {4,-29} |\n",
                                             item.ProductId,
                                             item.AutoRenew,
                                             item.RecurrenceState,
                                             item.StartTime.ToString(),
-                                            item.ExpirationTime);
+                                            item.ExpirationTimeWithGrace);
                 }
             }
             catch (Exception e)
             {
                 response.Append(e.Message);
+            }
+            if(includeJson)
+            {
+                response.Append("RawResponse: ");
+                response.Append(JsonConvert.SerializeObject(recurrenceResults));
             }
 
             var finalResponse = response.ToString();
@@ -161,6 +183,19 @@ namespace MicrosoftStoreServicesSample.Controllers
                 return BadRequest("Request body missing RecurrenceId. ex: {\"ChangeType\": \"...\"}, Cancel, Extend, Refund, ToggleAutoRenew");
             }
 
+
+            bool includeJson = false;
+            if (Request.Headers.ContainsKey("User-Agent"))
+            {
+                string userAgent = Request.Headers["User-Agent"];
+                if (!string.IsNullOrEmpty(userAgent) && userAgent.Equals("Microsoft.StoreServicesClientSample"))
+                {
+                    //  This call is from the Client sample that is tied to this sample, so include the added JSON
+                    //  in the response body so that it can use those values to update the UI.
+                    includeJson = true;
+                }
+            }
+
             var response = new StringBuilder("");
 
             var recurrenceRequest = new RecurrenceChangeRequest
@@ -170,7 +205,17 @@ namespace MicrosoftStoreServicesSample.Controllers
                 RecurrenceId = clientRequest.RecurrenceId
             };
 
-            if(clientRequest.ChangeType == RecurrenceChangeType.Extend.ToString())
+            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            {
+                recurrenceRequest.SandboxId = clientRequest.sbx;
+            }
+
+            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            {
+                recurrenceRequest.SandboxId = clientRequest.sbx;
+            }
+
+            if (clientRequest.ChangeType == RecurrenceChangeType.Extend.ToString())
             {
                 recurrenceRequest.ExtensionTimeInDays = clientRequest.ExtensionTime;
             }
@@ -184,21 +229,28 @@ namespace MicrosoftStoreServicesSample.Controllers
             try
             {
                 response.Append(
-                    "| ProductId    | A. Renew | State     | Start Date             | Expire Date (Without Grace)          |\n" +
-                    "|-----------------------------------------------------------------------------------------------------|\n");
+                    "| ProductId    | Renew | State     | Start Date                    | Expire Date (With Grace)      |\n" +
+                    "|--------------------------------------------------------------------------------------------------|\n");
 
 
-                response.AppendFormat("| {0,-12} | {1,-8} | {2,-9} | {3,-22} | {4,-36} |\n",
+                response.AppendFormat("| {0,-12} | {1,-5} | {2,-9} | {3,-29} | {4,-29} |\n",
                                       recurrenceResult.ProductId,
                                       recurrenceResult.AutoRenew,
                                       recurrenceResult.RecurrenceState,
                                       recurrenceResult.StartTime.ToString(),
-                                      recurrenceResult.ExpirationTime);
+                                      recurrenceResult.ExpirationTimeWithGrace);
                 
+
             }
             catch (Exception e)
             {
                 response.Append(e.Message);
+            }
+
+            if (includeJson)
+            {
+                response.Append("RawResponse: ");
+                response.Append(JsonConvert.SerializeObject(recurrenceResult));
             }
 
             var finalResponse = response.ToString();
@@ -230,6 +282,10 @@ namespace MicrosoftStoreServicesSample.Controllers
             {
                 clawbackRequest.LineItemStateFilter = clientRequest.LineItemStateFilter;
             }
+            else
+            {
+                clawbackRequest.LineItemStateFilter.Add(LineItemStates.Purchased);
+            }
 
             var clawbackResults = new ClawbackQueryResponse();
             using (var storeClient = _storeServicesClientFactory.CreateClient())
@@ -240,19 +296,26 @@ namespace MicrosoftStoreServicesSample.Controllers
             try
             {
                 response.Append(
-                    "| ProductId    | Quantity | State     | Refunded Date          | LineItemId                           |\n" +
-                    "|-----------------------------------------------------------------------------------------------------|\n");
+                    "| ProductId    | Qty | State     | LineItemId                           | Refunded Date                 |\n" +
+                    "|-------------------------------------------------------------------------------------------------------|\n");
 
                 foreach (var item in clawbackResults.Items)
                 {
                     foreach (var lineItem in item.OrderLineItems)
                     {
-                        response.AppendFormat("| {0,-12} | {1,-8} | {2,-9} | {3,-22} | {4,-36} |\n",
+                        //  If the item is in the Purchase state, then we don't show the Refund date
+                        string refundedDate = "";
+                        if(lineItem.LineItemState != LineItemStates.Purchased)
+                        {
+                            refundedDate = item.OrderRefundedDate.ToString();
+                        }
+
+                        response.AppendFormat("| {0,-12} | {1,-3} | {2,-9} | {3,-36} | {4,-29} |\n",
                                               lineItem.ProductId,
                                               lineItem.Quantity,
                                               lineItem.LineItemState,
-                                              item.OrderRefundedDate.ToString(),
-                                              lineItem.LineItemId);
+                                              lineItem.LineItemId,
+                                              item.OrderRefundedDate.ToString());
                     }
                 }
             }
@@ -452,7 +515,6 @@ namespace MicrosoftStoreServicesSample.Controllers
         {
             var response = new StringBuilder("");
             response.Append(
-                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n" +
                     "| Action State | ProductId    | Quantity | LineItemState | Purchased Date         | Refunded Date          | Candidate Id     | Candidate Consume Date | LineItemId                           |\n" +
                     "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
 
@@ -483,7 +545,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                 }
 
                 response.AppendFormat(
-                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
+                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n\n");
             }
 
             return response.ToString();

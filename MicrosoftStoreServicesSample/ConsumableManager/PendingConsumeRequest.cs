@@ -55,5 +55,11 @@ namespace MicrosoftStoreServicesSample
         /// Quantity to be removed from the user's balance of the consumable product.
         /// </summary>
         public uint RemoveQuantity { get; set; }
+
+        /// <summary>
+        /// Used to determine if this is a managed or unmanaged consumable as the consume request JSON is different
+        /// between them.
+        /// </summary>
+        public bool IsUnmanagedConsumable { get; set; }
     }
 }

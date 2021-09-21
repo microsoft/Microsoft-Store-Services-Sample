@@ -111,6 +111,18 @@ namespace MicrosoftStoreServicesSample.Controllers
                 return response.ToString();
             }
 
+            bool includeJson = false;
+            if (Request.Headers.ContainsKey("User-Agent"))
+            {
+                string userAgent = Request.Headers["User-Agent"];
+                if (!string.IsNullOrEmpty(userAgent) && userAgent == "Microsoft.StoreServicesClientSample")
+                {
+                    //  This call is from the Client sample that is tied to this sample, so include the added JSON
+                    //  in the response body so that it can use those values to update the UI.
+                    includeJson = true;
+                }
+            }
+            
             //  Build our query request parameters to the Collections Service
             var queryRequest = new CollectionsQueryRequest();
 
@@ -124,6 +136,21 @@ namespace MicrosoftStoreServicesSample.Controllers
                 LocalTicketReference = ""
             };
             queryRequest.Beneficiaries.Add(beneficiary);
+
+            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            {
+                queryRequest.SandboxId = clientRequest.sbx;
+            }
+
+            if (clientRequest.EntitlementFilters != null &&
+                clientRequest.EntitlementFilters.Count > 0)
+            {
+                queryRequest.EntitlementFilters = clientRequest.EntitlementFilters;
+            }
+            else
+            {
+                queryRequest.EntitlementFilters.Append(EntitlementFilterTypes.Subscription);
+            }
 
             //  TODO: Add any other request filtering that your service requires
             //        For example, filtering to specific ProductIds or product types
@@ -146,34 +173,69 @@ namespace MicrosoftStoreServicesSample.Controllers
                 //  TODO: Operate on the results with your custom logic
                 //        For this sample we just iterate through the results, format them to
                 //        a readable string and send it back to the client as proof of flow.
+                response.Append(
+                    "| ProductId    | Qty | Product Kind | Acquisition | Satisfied By |\n" +
+                    "|----------------------------------------------------------------|\n");
+
                 foreach (var item in userCollection.Items)
                 {
-                    var satisfyingEntitlements = new StringBuilder();
-                    var consumableInfo = new StringBuilder();
+
+                    //  Some Durable types have a quantity of 1, but for the output we will only show the
+                    //  quantity if this is a consumable type product
+                    string quantityToDisplay = "";
+                    if( item.ProductKind == "UnmanagedConsumable" ||
+                        item.ProductKind == "Consumable")
+                    {
+                        quantityToDisplay = item.Quantity.ToString();
+                    }
+
+                    string formattedType = item.ProductKind;
+
+                    if(item.ProductKind == "UnmanagedConsumable")
+                    {
+                        formattedType = "U.Consumable";
+                    }
+
+                    response.AppendFormat("| {0,-12} | {1,-3} | {2,-12} | {3,-11} ",
+                                            item.ProductId,
+                                            quantityToDisplay,
+                                            formattedType,
+                                            item.AcquisitionType);
 
                     //  Check if this is enabled because of a satisfying entitlement from a bundle or subscription
+                    //  format to add those to the output on their own lines.
                     if (item.SatisfiedByProductIds.Any())
                     {
-                        satisfyingEntitlements.Append(" enabled by satisfying entitlement(s) from ");
+                        bool isFirstEntitlement = true;
                         foreach (var parent in item.SatisfiedByProductIds)
                         {
-                            satisfyingEntitlements.Append($"{parent}, ");
+                            if (isFirstEntitlement)
+                            {
+                                isFirstEntitlement = false;
+                                response.AppendFormat("| {0,-12} |\n",
+                                                      parent);
+                            }
+                            else
+                            {
+                                response.AppendFormat("|                                                   {0,-12} |\n",
+                                                      parent);
+                            }
                         }
                     }
-
-                    if (item.ProductKind == "Consumable")
+                    else
                     {
-                        consumableInfo.AppendFormat(" with a balance remaining of {0}", item.Quantity);
+                        response.AppendFormat("|              |\n");
                     }
-
-                    //  [Product type] [ProductID (aka StoreID from Partner Center)] [Satisfying entitlements] acquired by [acquisition type]
-                    response.AppendFormat("  {0}  {1} {2} acquired by {3}{4}\n",
-                                          item.ProductKind,
-                                          item.ProductId,
-                                          satisfyingEntitlements.ToString(),
-                                          AcquisitionTypeFriendlyName(item.AcquisitionType),
-                                          consumableInfo.ToString());
                 }
+
+                //  If this is from the Client sample, include the JSON so that it can display the items in the UI
+                //  properly
+                if (includeJson)
+                {
+                    response.Append("RawResponse: ");
+                    response.Append(JsonConvert.SerializeObject(userCollection));
+                }
+
             }
             catch (Exception ex)
             {

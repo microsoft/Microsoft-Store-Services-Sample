@@ -160,7 +160,7 @@ namespace MicrosoftStoreServicesSample
         {
             //  Check if the UserCollectionsId has expired, if so, refresh it
             var userCollectionsId = new UserStoreId(pendingRequest.UserCollectionsId);
-            if (DateTime.UtcNow > userCollectionsId.Expires)
+            if (DateTime.UtcNow > userCollectionsId.RefreshAfter)
             {
                 using (var storeClient = _storeServicesClientFactory.CreateClient())
                 {
@@ -181,7 +181,8 @@ namespace MicrosoftStoreServicesSample
                 RequestBeneficiary = beneficary,
                 ProductId = pendingRequest.ProductId,
                 RemoveQuantity = pendingRequest.RemoveQuantity,
-                TrackingId = pendingRequest.TrackingId
+                TrackingId = pendingRequest.TrackingId,
+                IsUnmanagedConsumable = pendingRequest.IsUnmanagedConsumable
             };
 
             return consumeRequest;
@@ -199,12 +200,13 @@ namespace MicrosoftStoreServicesSample
             //  build our request structure
             var pendingConsumeRequest = new PendingConsumeRequest
             {
-                UserCollectionsId = clientRequest.UserCollectionsId,
-                ProductId         = clientRequest.ProductId,
-                RemoveQuantity    = clientRequest.Quantity,
-                UserPurchaseId    = clientRequest.UserPurchaseId,
-                UserId            = clientRequest.UserId,
-                TrackingId        = clientRequest.TransactionId
+                UserCollectionsId     = clientRequest.UserCollectionsId,
+                ProductId             = clientRequest.ProductId,
+                RemoveQuantity        = clientRequest.Quantity,
+                UserPurchaseId        = clientRequest.UserPurchaseId,
+                UserId                = clientRequest.UserId,
+                TrackingId            = clientRequest.TransactionId,
+                IsUnmanagedConsumable = clientRequest.IsUnmanagedConsumable
             };
 
             //  A TransactionId is required to validate if the consume succeeded

@@ -16,5 +16,6 @@ namespace MicrosoftStoreServicesSample
         public string ChangeType { get; set; }
         public string RecurrenceId { get; set; }
         public int ExtensionTime { get; set; }
+        public string sbx { get; set; }
     }
 }
