@@ -85,6 +85,8 @@ namespace MicrosoftStoreServicesSample.Controllers
         {
             InitializeLoggingCv();
             var response = new StringBuilder("");
+            var trialData = new StringBuilder("");
+            bool includeTrialData = false;
             bool err = false;
 
             //  TODO: Replace this code obtaining and noting the UserId with your own
@@ -174,8 +176,8 @@ namespace MicrosoftStoreServicesSample.Controllers
                 //        For this sample we just iterate through the results, format them to
                 //        a readable string and send it back to the client as proof of flow.
                 response.Append(
-                    "| ProductId    | Qty | Product Kind | Acquisition | Satisfied By |\n" +
-                    "|----------------------------------------------------------------|\n");
+                    "| ProductId    | Qty | Product Kind | Acquisition | IsTrial | Satisfied By |\n" +
+                    "|--------------------------------------------------------------------------|\n");
 
                 foreach (var item in userCollection.Items)
                 {
@@ -196,11 +198,12 @@ namespace MicrosoftStoreServicesSample.Controllers
                         formattedType = "U.Consumable";
                     }
 
-                    response.AppendFormat("| {0,-12} | {1,-3} | {2,-12} | {3,-11} ",
+                    response.AppendFormat("| {0,-12} | {1,-3} | {2,-12} | {3,-11} | {4,-7} ",
                                             item.ProductId,
                                             quantityToDisplay,
                                             formattedType,
-                                            item.AcquisitionType);
+                                            item.AcquisitionType,
+                                            item.TrialData.IsTrial);
 
                     //  Check if this is enabled because of a satisfying entitlement from a bundle or subscription
                     //  format to add those to the output on their own lines.
@@ -226,12 +229,41 @@ namespace MicrosoftStoreServicesSample.Controllers
                     {
                         response.AppendFormat("|              |\n");
                     }
+
+                    if (item.TrialData.IsTrial)
+                    {
+                        if(!includeTrialData)
+                        {
+                            includeTrialData = true;
+                            trialData.Append(
+                            "| ProductId    | IsInTrialPeriod | Remaining (DD.HH:MM:SS)        |\n" +
+                            "|-----------------------------------------------------------------|\n");
+                        }
+
+                        string remainingTrialTimeText = string.Format("{0}.{1}:{2}:{3}",
+                                                                     item.TrialData.TrialTimeRemaining.Days,
+                                                                     item.TrialData.TrialTimeRemaining.Hours,
+                                                                     item.TrialData.TrialTimeRemaining.Minutes,
+                                                                     item.TrialData.TrialTimeRemaining.Seconds);
+
+                        trialData.AppendFormat("| {0,-12} | {1,-15} | {2,-30} |\n",
+                                               item.ProductId,
+                                               item.TrialData.IsInTrialPeriod,
+                                               remainingTrialTimeText);
+                    }
+                }
+
+                if(includeTrialData)
+                {
+                    response.AppendLine("");
+                    response.Append(trialData);
                 }
 
                 //  If this is from the Client sample, include the JSON so that it can display the items in the UI
                 //  properly
                 if (includeJson)
                 {
+                    response.AppendLine("");
                     response.Append("RawResponse: ");
                     response.Append(JsonConvert.SerializeObject(userCollection));
                 }
