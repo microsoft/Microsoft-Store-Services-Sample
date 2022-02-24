@@ -160,7 +160,7 @@ namespace MicrosoftStoreServicesSample
         {
             //  Check if the UserCollectionsId has expired, if so, refresh it
             var userCollectionsId = new UserStoreId(pendingRequest.UserCollectionsId);
-            if (DateTime.UtcNow > userCollectionsId.RefreshAfter)
+            if (DateTimeOffset.UtcNow > userCollectionsId.RefreshAfter)
             {
                 using (var storeClient = _storeServicesClientFactory.CreateClient())
                 {
@@ -182,7 +182,8 @@ namespace MicrosoftStoreServicesSample
                 ProductId = pendingRequest.ProductId,
                 RemoveQuantity = pendingRequest.RemoveQuantity,
                 TrackingId = pendingRequest.TrackingId,
-                IsUnmanagedConsumable = pendingRequest.IsUnmanagedConsumable
+                IsUnmanagedConsumable = pendingRequest.IsUnmanagedConsumable,
+                IncludeOrderIds = pendingRequest.IncludeOrderIds
             };
 
             return consumeRequest;
@@ -206,7 +207,8 @@ namespace MicrosoftStoreServicesSample
                 UserPurchaseId        = clientRequest.UserPurchaseId,
                 UserId                = clientRequest.UserId,
                 TrackingId            = clientRequest.TransactionId,
-                IsUnmanagedConsumable = clientRequest.IsUnmanagedConsumable
+                IsUnmanagedConsumable = clientRequest.IsUnmanagedConsumable,
+                IncludeOrderIds       = clientRequest.IncludeOrderids
             };
 
             //  A TransactionId is required to validate if the consume succeeded

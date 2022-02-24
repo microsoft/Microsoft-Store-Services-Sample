@@ -42,6 +42,8 @@ namespace MicrosoftStoreServicesSample
         /// </summary>
         public string ProductId { get; set; }
 
+        public bool IncludeOrderIds { get; set; } = false;
+
         /// <summary>
         /// Unique Id that is used to track the consume request and can
         /// be used to replay the request and verify the resulting status.

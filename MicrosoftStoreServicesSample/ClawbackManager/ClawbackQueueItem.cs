@@ -36,7 +36,7 @@ namespace MicrosoftStoreServicesSample
         /// <param name="request">Completed consume request info</param>
         public ClawbackQueueItem(PendingConsumeRequest request)
         {
-            ConsumeDate    = DateTime.UtcNow;
+            ConsumeDate    = DateTimeOffset.UtcNow;
             TrackingId     = request.TrackingId;
             ProductId      = request.ProductId;
             UserId         = request.UserId;

@@ -176,7 +176,7 @@ namespace MicrosoftStoreServicesSample
             {
                 //  Step 1:
                 //  Check if the queue item is older than 90 days, if it is, remove it and go to the next
-                if (DateTime.UtcNow > clawbackQueueItem.ConsumeDate.AddDays(90))
+                if (DateTimeOffset.UtcNow > clawbackQueueItem.ConsumeDate.AddDays(90))
                 {
                     logMessage = $"Item {clawbackQueueItem.TrackingId} is older than 90 days, removing from the ClawbackQueue";
                     _logger.ServiceInfo(cV.Value, logMessage);
@@ -192,7 +192,7 @@ namespace MicrosoftStoreServicesSample
                     {
                         //  Check if the UserPurchaseId has expired, if so, refresh it
                         var userPurchaseId = new UserStoreId(clawbackQueueItem.UserPurchaseId);
-                        if (DateTime.UtcNow > userPurchaseId.RefreshAfter)
+                        if (DateTimeOffset.UtcNow > userPurchaseId.RefreshAfter)
                         {
                             var serviceToken = await storeClient.GetServiceAccessTokenAsync();
                             await userPurchaseId.RefreshStoreId(serviceToken.Token);

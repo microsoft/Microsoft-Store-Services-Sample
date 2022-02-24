@@ -287,6 +287,11 @@ namespace MicrosoftStoreServicesSample.Controllers
                 clawbackRequest.LineItemStateFilter.Add(LineItemStates.Purchased);
             }
 
+            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            {
+                clawbackRequest.SandboxId = clientRequest.sbx;
+            }
+
             var clawbackResults = new ClawbackQueryResponse();
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
