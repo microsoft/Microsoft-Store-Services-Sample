@@ -134,6 +134,11 @@ namespace MicrosoftStoreServicesSample
             //        account within your own game service / database
             await GrantUserConsumableValue(request, cV);
 
+            //  Add the results of the Consume to our completed consume transactions
+            //  so that we can lookup the information on the transaction if the OrderIds
+            //  show up in a Clawback response
+            await AddToCompletedConsumeTransactions(request.UserId, consumeResult, cV);
+
             //  If we have the UserPurchaseId then we can add this to the Clawback queue
             //  for checking if the user requests a refund for this item later
             if (!string.IsNullOrEmpty(request.UserPurchaseId))
@@ -141,7 +146,7 @@ namespace MicrosoftStoreServicesSample
                 var clawManager = new ClawbackManager(_config,
                                                       _storeServicesClientFactory,
                                                       _logger);
-                await clawManager.AddConsumeToClawbackQueueAsync(request, cV);
+                await clawManager.AddUserPurchaseIdToClawbackQueue(request, cV);
             }
             
             //  We have now taken action on the results of the consume and added the balance to the
@@ -435,6 +440,28 @@ namespace MicrosoftStoreServicesSample
             }
 
             return newBalance;
+        }
+
+        /// <summary>
+        /// This will add an item in our completed list of consume transactions for each
+        /// OrderId info set in the consume response.  Since we can consume multiple orders
+        /// worth of consumables in a single consume transaction, we may end up with multiple
+        /// orders that were fulfilled with the same TrackingId.
+        /// </summary>
+        /// <param name="UserId">User who got credit for the consume in the system</param>
+        /// <param name="response"></param>
+        /// <returns></returns>
+        private async Task AddToCompletedConsumeTransactions(string UserId, CollectionsConsumeResponse response, CorrelationVector cV)
+        {
+            foreach(var orderInfo in response.OrderTransactions)
+            {
+                var transaction = new CompletedConsumeTransaction(UserId, response.ProductId, response.TrackingId, orderInfo);
+                using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
+                {
+                    await dbContext.CompletedConsumeTransactions.AddAsync(transaction);
+                    await dbContext.SaveChangesAsync();
+                }
+            }
         }
 
         /// <summary>

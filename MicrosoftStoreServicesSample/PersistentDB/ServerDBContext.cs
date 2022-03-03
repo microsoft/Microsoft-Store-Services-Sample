@@ -27,6 +27,6 @@ namespace MicrosoftStoreServicesSample.PersistentDB
         public DbSet<PendingConsumeRequest> PendingConsumeRequests { get; set; }
         public DbSet<UserConsumableBalance> UserBalances { get; set; }
         public DbSet<ClawbackQueueItem> ClawbackQueue { get; set; }
-        public DbSet<ClawbackActionItem> ClawbackActionItems { get; set; }
+        public DbSet<CompletedConsumeTransaction> CompletedConsumeTransactions { get; set; } 
     }
 }

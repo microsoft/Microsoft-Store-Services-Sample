@@ -19,14 +19,25 @@ namespace MicrosoftStoreServicesSample
     /// </summary>
     public class ClawbackQueueItem
     {
-        [Key] 
-        public string TrackingId { get; set; }
-        public DateTimeOffset ConsumeDate { get; set; }
-        public string ProductId { get; set; }
+        [Key]
+        //  Unique UserId within our service for the user
+        //  If your service is supporting multi-purchasing accounts
+        //  per UserId then this needs to be a unique GUID instead
+        //  of the actual UserId.
         public string UserId { get; set; }
-        public string UserPurchaseId { get; set; }
-        public uint Quantity { get; set; }
 
+        /// <summary>
+        /// UserPurchaseId that we have cached and keep updating for the
+        /// user so that we can call the Clawback service even if they
+        /// are not online.
+        /// </summary>
+        public string UserPurchaseId { get; set; }
+
+        /// <summary>
+        /// When the consume (or last consume) happened
+        /// </summary>
+        public DateTimeOffset ConsumeDate { get; set; }
+        
         public ClawbackQueueItem() { }
         
         /// <summary>
@@ -37,11 +48,14 @@ namespace MicrosoftStoreServicesSample
         public ClawbackQueueItem(PendingConsumeRequest request)
         {
             ConsumeDate    = DateTimeOffset.UtcNow;
-            TrackingId     = request.TrackingId;
-            ProductId      = request.ProductId;
-            UserId         = request.UserId;
             UserPurchaseId = request.UserPurchaseId;
-            Quantity       = request.RemoveQuantity;
+            UserId = request.UserId;
+
+            //  NOTE: If your service is supporting multi-purchasing accounts
+            //  for a single UserId, then this must be a unique GUID
+            //  and not the actual UserId. Ex:
+            //  UserId = Guid.NewGuid().ToString();
+
         }
     }
 }

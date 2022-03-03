@@ -46,7 +46,7 @@ namespace MicrosoftStoreServicesSample
         private static readonly Action<ILogger, string, string, string, string, Exception> _collectionsInvalidRequest;
         private static readonly Action<ILogger, string, string, string, string, uint, Exception> _removePendingTransaction;
         private static readonly Action<ILogger, string, string, string, string, uint, Exception> _addPendingTransaction;
-        private static readonly Action<ILogger, string, string, string, string, uint, Exception> _addConsumeToClawbackQueue;
+        private static readonly Action<ILogger, string, string, string, string, uint, Exception> _addUserPurchaseIdToClawbackQueue;
         private static readonly Action<ILogger, string, string, string, Exception> _queryResponse;
         private static readonly Action<ILogger, string, string, string, Exception> _queryError;
         private static readonly Action<ILogger, string, string, string, Exception> _consumeResponse;
@@ -115,9 +115,9 @@ namespace MicrosoftStoreServicesSample
                 new EventId(LogEventIds.TransactionDB, nameof(AddPendingTransaction)),
                 "{{\"cV\":\"{cV}\",\"userId\":\"{userId}\",\"transaction\":\"{transaction}\",\"product\":\"{product}\",\"quantity\":{quantity},\"status\":\"pending\"}}");
 
-            _addConsumeToClawbackQueue = LoggerMessage.Define<string, string, string, string, uint>(
+            _addUserPurchaseIdToClawbackQueue = LoggerMessage.Define<string, string, string, string, uint>(
                 LogLevel.Information,
-                new EventId(LogEventIds.Clawback, nameof(AddConsumeToClawbackQueue)),
+                new EventId(LogEventIds.Clawback, nameof(AddUserPurchaseIdToClawbackQueue)),
                 "{{\"cV\":\"{cV}\",\"userId\":\"{userId}\",\"transaction\":\"{transaction}\",\"product\":\"{product}\",\"quantity\":{quantity},\"status\":\"queued\"}}");
 
             _queryResponse = LoggerMessage.Define<string, string, string>(
@@ -217,9 +217,9 @@ namespace MicrosoftStoreServicesSample
             _addPendingTransaction(logger, cV, userId, transactionId, productId, quantity, null);
         }
 
-        public static void AddConsumeToClawbackQueue(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity)
+        public static void AddUserPurchaseIdToClawbackQueue(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity)
         {
-            _addConsumeToClawbackQueue(logger, cV, userId, transactionId, productId, quantity, null);
+            _addUserPurchaseIdToClawbackQueue(logger, cV, userId, transactionId, productId, quantity, null);
         }
 
         public static void RemovePendingTransaction(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity)
