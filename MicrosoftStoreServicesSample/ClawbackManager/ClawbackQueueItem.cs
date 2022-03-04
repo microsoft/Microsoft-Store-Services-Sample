@@ -45,17 +45,22 @@ namespace MicrosoftStoreServicesSample
         /// PendingConsumeRequest object
         /// </summary>
         /// <param name="request">Completed consume request info</param>
-        public ClawbackQueueItem(PendingConsumeRequest request)
+        public ClawbackQueueItem(PendingConsumeRequest request, bool SinglePurchasingAccount = true)
         {
             ConsumeDate    = DateTimeOffset.UtcNow;
             UserPurchaseId = request.UserPurchaseId;
-            UserId = request.UserId;
 
-            //  NOTE: If your service is supporting multi-purchasing accounts
-            //  for a single UserId, then this must be a unique GUID
-            //  and not the actual UserId. Ex:
-            //  UserId = Guid.NewGuid().ToString();
-
+            if (SinglePurchasingAccount)
+            {
+                UserId = request.UserId;
+            }
+            else
+            {
+                //  If your service is supporting multi-purchasing accounts
+                //  for a single UserId, then this must be a unique GUID
+                //  and not the actual UserId.
+                UserId = Guid.NewGuid().ToString();
+            }
         }
     }
 }

@@ -349,7 +349,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             var response = new StringBuilder("Running Clawback Reconciliation Task...  \n");
 
             var clawManager = new ClawbackManager(_config, _storeServicesClientFactory, _logger);
-            response.Append(await clawManager.RunClawbackReconciliationForSinglePurchasingAccountsAsync(_cV));
+            response.Append(await clawManager.RunClawbackReconciliationAsync(_cV));
 
             FinalizeLoggingCv();
             return new OkObjectResult(response.ToString());

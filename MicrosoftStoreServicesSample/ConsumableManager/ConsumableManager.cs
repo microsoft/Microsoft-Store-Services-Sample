@@ -139,14 +139,22 @@ namespace MicrosoftStoreServicesSample
             //  show up in a Clawback response
             await AddToCompletedConsumeTransactions(request.UserId, consumeResult, cV);
 
-            //  If we have the UserPurchaseId then we can add this to the Clawback queue
-            //  for checking if the user requests a refund for this item later
+            //  TODO: Cache the UserPurchaseId so that Clawback can use it to make calls
+            //        for this user and check if a refund has been issued later on.
+            //
+            //        If your title is a PC title and supports multi-purchasing accounts
+            //        per-user, you need to cache every single UserPurchaseId that
+            //        corresponds to the UserCollectionsId used in this consume request.
+            //        
+            //        If your title is for the Xbox console, that is not needed and you
+            //        only need to cache one UserPurchaseId per user as all Console
+            //        transactions support a single purchasing account.
             if (!string.IsNullOrEmpty(request.UserPurchaseId))
             {
                 var clawManager = new ClawbackManager(_config,
                                                       _storeServicesClientFactory,
                                                       _logger);
-                await clawManager.AddUserPurchaseIdToClawbackQueue(request, cV);
+                await clawManager.AddUserPurchaseIdToClawbackQueue(request, true, cV);
             }
             
             //  We have now taken action on the results of the consume and added the balance to the
@@ -451,7 +459,7 @@ namespace MicrosoftStoreServicesSample
         /// <param name="UserId">User who got credit for the consume in the system</param>
         /// <param name="response"></param>
         /// <returns></returns>
-        private async Task AddToCompletedConsumeTransactions(string UserId, CollectionsConsumeResponse response, CorrelationVector cV)
+        public async Task AddToCompletedConsumeTransactions(string UserId, CollectionsConsumeResponse response, CorrelationVector cV)
         {
             foreach(var orderInfo in response.OrderTransactions)
             {
@@ -461,6 +469,39 @@ namespace MicrosoftStoreServicesSample
                     await dbContext.CompletedConsumeTransactions.AddAsync(transaction);
                     await dbContext.SaveChangesAsync();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Update the state of a transaction to identify if it has been part of a reconciliation or not
+        /// </summary>
+        /// <param name="DBkey">Unique GUID for the completed transaction in the DB</param>
+        /// <param name="NewState">The new state for the item</param>
+        /// <returns></returns>
+        public async Task UpdateCompletedConsumeTransactionState(string DBKey, CompletedConsumeTransactionState NewState, CorrelationVector cV)
+        {
+            try
+            {
+                using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
+                {
+                    var transaction = dbContext.CompletedConsumeTransactions.Where(b => b.DbKey == DBKey).First();
+
+                    if(transaction != null)
+                    {
+                        _logger.ServiceInfo(cV.Value, $"Updating transaction {DBKey}'s status from {transaction.TransactionStatus.ToString()} to {NewState.ToString()}");
+                        transaction.TransactionStatus = NewState;
+                        await dbContext.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        _logger.ServiceWarning(cV.Value, $"Unable to find completed consume transaction with DBKey: {DBKey}", null);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.ServiceWarning(cV.Value,
+                    $"Unable to update consume transaction with DBKey: {DBKey}", e);
             }
         }
 
