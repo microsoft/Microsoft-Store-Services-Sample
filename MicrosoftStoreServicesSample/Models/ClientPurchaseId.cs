@@ -16,6 +16,6 @@ namespace MicrosoftStoreServicesSample
         public string UserPurchaseId { get; set; }
         public string UserId { get; set; }
         public List<string> LineItemStateFilter { get; set; }
-        public string sbx { get; set; }
+        public string Sbx { get; set; }
     }
 }

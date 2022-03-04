@@ -22,7 +22,7 @@ namespace MicrosoftStoreServicesSample
     public class CompletedConsumeTransaction : ConsumeOrderTransactionContractV8
     {
         /// <summary>
-        /// This is a Guid generated on creation to be a unique Id key
+        /// This is a GUID generated on creation to be a unique Id key
         /// in the database.  This is because multiple items could have
         /// the same trackingId or orderLineItemID if the consumable is
         /// setup to grant more than qty 1 when purchased in the store.
@@ -53,17 +53,20 @@ namespace MicrosoftStoreServicesSample
         public string UserId { get; set; }
 
         public CompletedConsumeTransaction() { }
-        
+
         /// <summary>
         /// Creates an item to add to the Clawback validation queue from a completed
         /// PendingConsumeRequest object
         /// </summary>
-        /// <param name="request">Completed consume request info</param>
-        public CompletedConsumeTransaction(string UserId, string ProductId, string TrackingId, ConsumeOrderTransactionContractV8 transaction)
+        /// <param name="userId"></param>
+        /// <param name="productId"></param>
+        /// <param name="trackingId"></param>
+        /// <param name="transaction"></param>
+        public CompletedConsumeTransaction(string userId, string productId, string trackingId, ConsumeOrderTransactionContractV8 transaction)
         {
-            this.TrackingId  = TrackingId;
-            this.ProductId   = ProductId;
-            this.UserId      = UserId;
+            this.TrackingId  = trackingId;
+            this.ProductId   = productId;
+            this.UserId      = userId;
             ConsumeDate      = DateTimeOffset.UtcNow;
             OrderId          = transaction.OrderId;
             OrderLineItemId  = transaction.OrderLineItemId;
@@ -81,11 +84,6 @@ namespace MicrosoftStoreServicesSample
         /// Transaction was granted to the user
         /// </summary>
         Granted = 0,
-
-        /// <summary>
-        /// Transaction was refunded to the user but has not yet been reconciled in our service
-        /// </summary>
-        Revoked,
 
         /// <summary>
         /// Transaction was refunded and we took appropriate action to reconcile the user's account

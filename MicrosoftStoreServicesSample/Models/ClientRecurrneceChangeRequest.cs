@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------------
-// ClientAccessTokensRequest.cs
+// ClientRecurrneceChangeRequest.cs
 //
 // Xbox Advanced Technology Group (ATG)
 // Copyright (C) Microsoft Corporation. All rights reserved.
@@ -16,6 +16,6 @@ namespace MicrosoftStoreServicesSample
         public string ChangeType { get; set; }
         public string RecurrenceId { get; set; }
         public int ExtensionTime { get; set; }
-        public string sbx { get; set; }
+        public string Sbx { get; set; }
     }
 }

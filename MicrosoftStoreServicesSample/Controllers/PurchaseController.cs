@@ -120,9 +120,9 @@ namespace MicrosoftStoreServicesSample.Controllers
                 UserPurchaseId = clientRequest.UserPurchaseId
             };
 
-            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            if (!string.IsNullOrEmpty(clientRequest.Sbx))
             {
-                recurrenceRequest.SandboxId = clientRequest.sbx;
+                recurrenceRequest.SandboxId = clientRequest.Sbx;
             }
 
             var recurrenceResults = new RecurrenceQueryResponse();
@@ -205,14 +205,9 @@ namespace MicrosoftStoreServicesSample.Controllers
                 RecurrenceId = clientRequest.RecurrenceId
             };
 
-            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            if (!string.IsNullOrEmpty(clientRequest.Sbx))
             {
-                recurrenceRequest.SandboxId = clientRequest.sbx;
-            }
-
-            if (!string.IsNullOrEmpty(clientRequest.sbx))
-            {
-                recurrenceRequest.SandboxId = clientRequest.sbx;
+                recurrenceRequest.SandboxId = clientRequest.Sbx;
             }
 
             if (clientRequest.ChangeType == RecurrenceChangeType.Extend.ToString())
@@ -287,9 +282,9 @@ namespace MicrosoftStoreServicesSample.Controllers
                 clawbackRequest.LineItemStateFilter.Add(LineItemStates.Purchased);
             }
 
-            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            if (!string.IsNullOrEmpty(clientRequest.Sbx))
             {
-                clawbackRequest.SandboxId = clientRequest.sbx;
+                clawbackRequest.SandboxId = clientRequest.Sbx;
             }
 
             var clawbackResults = new ClawbackQueryResponse();
@@ -376,7 +371,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             foreach (var clawbackQueueItem in clawbackQueue)
             {
                 response.AppendFormat("User {0}'s last transaction on {1}, {2}\n",
-                                      clawbackQueueItem.UserId,
+                                      clawbackQueueItem.DbKey,
                                       clawbackQueueItem.ConsumeDate,
                                       clawbackQueueItem.UserPurchaseId);
             }
@@ -406,8 +401,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
             if (reconciledTransactions.Count > 0)
             {
-                //  todo-cagood
-                //response.Append(FormatResponseFromClawbackActionList(buildingItems));
+                response.Append(FormatResponseForCompletedTransactions(reconciledTransactions));
             }
             else
             {
@@ -417,5 +411,37 @@ namespace MicrosoftStoreServicesSample.Controllers
             FinalizeLoggingCv();
             return new OkObjectResult(response.ToString());
         }
-    }
+
+        /// <summary>
+        /// Utility function to help format the response to send back down to the client for the 
+        /// test endpoints
+        /// </summary>
+        /// <param name="actionItems"></param>
+        /// <returns></returns>
+        private static string FormatResponseForCompletedTransactions(List<CompletedConsumeTransaction> transactions)
+        {
+            var response = new StringBuilder("");
+            response.Append(
+                    "| TrackingId                          | Status       | ProductId    | Quantity | Consumed Date          | UserId | OrderId                              | OrderLineItemId                           |\n" +
+                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
+
+            foreach (var transaction in transactions)
+            {
+                response.AppendFormat("| {0,-36} | {1,-12} | {2,-12} | {3,-8} | {4,-22} | {5,-36} | {6,-36} | {7,-36} | {8,-36} |\n",
+                                      transaction.TrackingId,
+                                      transaction.TransactionStatus,
+                                      transaction.ProductId,
+                                      transaction.QuantityConsumed,
+                                      transaction.ConsumeDate,
+                                      transaction.UserId,
+                                      transaction.OrderId,
+                                      transaction.OrderLineItemId);
+
+                response.AppendFormat(
+                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n\n");
+            }
+
+            return response.ToString();
+        }
+    }    
 }

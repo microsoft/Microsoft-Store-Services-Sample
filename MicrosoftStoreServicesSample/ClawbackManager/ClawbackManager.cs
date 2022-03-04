@@ -37,34 +37,71 @@ namespace MicrosoftStoreServicesSample
 
         /// <summary>
         /// Adds the purchaseId from a successful consume to the database so we can use
-        /// it to call the Clawback and check if there were refunds issues to this user
+        /// it to call the Clawback and check if there are refunds issued to this transaction
         /// for the next 90 days.
+        /// 
+        /// NOTE - Single-purchasing (Xbox) vs multi-purchasing account (Windows PC) support
+        /// 
+        /// Single-purchasing account support:
+        /// On the Xbox console, all store consumable purchases are tied to the Xbox Live 
+        /// account actively playing your title.  We call these single-purchasing accounts
+        /// and for calling Clawback,  we only need to do one call per-user to see all their
+        /// refunded items.  Therefore only need to cache one UserPurchaseId in the queue for
+        /// these accounts.  In this case, the database key value will be our system's UserId
+        /// for each individual user.
+        /// 
+        /// Multi-purchasing account support:
+        /// Alternatively on a Windows PC, the account signed into the store app is the 
+        /// account that will make the purchases of consumable products.  The UserStoreIds generated
+        /// on the PC client at that time are tied to the Microsoft Account signed into the store app
+        /// and may or may not be the same Microsoft Account signed into Xbox Live and represents the
+        /// active XBL account in your title.  Therefore, in this scenario there may be multiple
+        /// accounts making purchases for a single UserId within our title service.  If supporting
+        /// this flow, we cannot rely on a single UserPurchaseId in our ClawbackQueue for each user
+        /// in our system.  We must instead create a Clawback queue item for each consume transaction
+        /// that succeeds so we can check for that specific account's refunds.  This means we will be
+        /// making repeated calls for the same user the UserPurchaseId represents, but it guarantees
+        /// we can still check for any refunds related to consume transactions we have completed. In
+        /// this case, the database key value will be a uniquely generated GUID and not tied to the
+        /// UserId at all.
+        /// 
+        /// You can configure your Windows PC title to require users to sign into the Windows Store
+        /// app with the same MSA as the XBL account they are using to play your title.  That would
+        /// then allow you to treat these as single-purchasing accounts.  The decision is up to you
+        /// and what is best for your Windows PC community.  See more information in the GDK
+        /// documentation article "Handling mismatched store account scenarios on PC"
+        /// https://docs.microsoft.com/en-us/gaming/gdk/_content/gc/commerce/pc-specific-considerations/xstore-handling-mismatched-store-accounts
         /// </summary>
         /// <param name="request">Pending consume request that we will take the UserPurchaseId and UserId from</param>
-        /// <param name="singlePurchasingAccount">Indicates this is a single-purchasing account so we only need one UserPurchaseId cached for the user</param>
+        /// <param name="isSinglePurchasingAccount">Indicates this is a single-purchasing account or multi-purchasing account (see summary notes)r</param>
+        /// <param name="cV"></param>
         /// <returns></returns>
-        public async Task<bool> AddUserPurchaseIdToClawbackQueue(PendingConsumeRequest request, bool singlePurchasingAccount, CorrelationVector cV)
+        public async Task<bool> AddUserPurchaseIdToClawbackQueue(PendingConsumeRequest request, bool isSinglePurchasingAccount, CorrelationVector cV)
         {
+            ClawbackQueueItem item;
             try
             {
                 using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
                 {
-                    ClawbackQueueItem item;
 
-                    //  Check if there is already a tracked UserPurchaseId for this user if single purchasing account,
-                    if (singlePurchasingAccount && dbContext.ClawbackQueue.Where(b => b.UserId == request.UserId).Any())
+
+                    //  If this is a single-purchasing account check if we already have a
+                    //  cached purchaseId
+                    if (isSinglePurchasingAccount &&
+                        dbContext.ClawbackQueue.Where(b => b.DbKey == request.UserId).Any())
                     {   
-                        //  Update the existing item to have the latest date of consume and UserPurchaseId
+                        //  Update the existing item to have the latest date of consume
+                        //  and UserPurchaseId
                         item = dbContext.ClawbackQueue.Find(request.UserId);
                         item.UserPurchaseId = request.UserPurchaseId;
                         item.ConsumeDate = DateTimeOffset.UtcNow;
                     }
                     else
                     {
-                        //  This item either doesn't already exist if single purchasing
-                        //  or is a multi-purchasing flagged account and needs a unique
-                        //  Id per transaction.
-                        item = new ClawbackQueueItem(request, singlePurchasingAccount);
+                        //  This item either doesn't already exist if single-purchasing
+                        //  or is a multi-purchasing account and needs a unique Id per
+                        //  transaction.
+                        item = new ClawbackQueueItem(request, isSinglePurchasingAccount);
                         await dbContext.ClawbackQueue.AddAsync(item);
                     }
 
@@ -110,60 +147,50 @@ namespace MicrosoftStoreServicesSample
             }
             catch (Exception ex)
             {
-                _logger.ServiceWarning(cV.Value, $"Unable to remove ClawbackQueueItem for {queueItem.UserId}", ex);
+                _logger.ServiceWarning(cV.Value, $"Unable to remove ClawbackQueueItem for {queueItem.DbKey}", ex);
             }
         }
 
         /// <summary>
-        /// Update the Queue item's PurchaseId to a refreshed one
+        /// Update the Clawback queue item's PurchaseId to a refreshed one
         /// </summary>
-        /// <param name="userId"></param>
-        /// <param name="newKeyPurchaseId"></param>
+        /// <param name="itemKey">User Id in our system if supporting single-purchasing accounts, unique GUID created when item was first added if supporting multi-purchasing accounts </param>
+        /// <param name="newUserPurchaseId">Refreshed UserPurchaseId</param>
         /// <param name="cV"></param>
         /// <returns></returns>
-        private async Task UpdateQueueItemPurchaseId(String userId, String newKeyPurchaseId, CorrelationVector cV)
+        private async Task UpdateQueueItemPurchaseId(String itemKey, String newUserPurchaseId, CorrelationVector cV)
         {
             try
             {
                 using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
                 {
                     //  We should have a unique LineItemId
-                    var item = dbContext.ClawbackQueue.Find(userId);
+                    var item = dbContext.ClawbackQueue.Find(itemKey);
                     
                     if (item != null)
                     {
-                        item.UserPurchaseId = newKeyPurchaseId;
+                        item.UserPurchaseId = newUserPurchaseId;
                         await dbContext.SaveChangesAsync();
                     }
                     else
                     {
-                        _logger.ServiceWarning(cV.Value, $"Unable to remove CompletedConsumeTransaction with TrackingId {userId}", null);
+                        _logger.ServiceWarning(cV.Value, $"Unable to remove CompletedConsumeTransaction with TrackingId {itemKey}", null);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.ServiceWarning(cV.Value, $"Unable to update the UserPurchaseId for TrackingId {userId}", ex);
+                _logger.ServiceWarning(cV.Value, $"Unable to update the UserPurchaseId for TrackingId {itemKey}", ex);
             }
         }
 
-
-        ///////
-        /// todo:Cagood
-        /// Update this to have seperate single-purchasing-account and multi-purchasing-accounts APIs supported
-        /// /////////////////////////////
-
-
         /// <summary>
         /// This is the main logic that checks for any refunds within the past 90 days for each of entries in
-        /// the ClawbackQueue database.  For Xbox (single-purchasing accounts) we only need to do one call to
-        /// Clawback per-user.  For PC if the title supports multi-purchasing accounts per-user we need to 
-        /// call Clawback with each UserPurchaseId that was generated at the same time as the
-        /// UserCollectionsId used to make the consume request (because the user in our database may not be
-        /// the account in the Microsoft store that made the purchase).  The logic to handle both of those
-        /// is controlled by the ConsumeAsync API.  
+        /// the Clawback Queue database.  The difference between single and multi-purchasing accounts in our
+        /// system is controlled by the ConsumeAsync API, please see that API for more information on how
+        /// these are different and recorded into the Clawback Queue.
         /// 
-        /// This is an example of the flow that works with a small sample data set.  This code
+        /// NOTE: This is an example of the flow that works with a small sample data set.  This code
         /// and the supporting functions would need to be updated to scale better to a larger data set.
         /// </summary>
         /// <param name="cV"></param>
@@ -188,7 +215,7 @@ namespace MicrosoftStoreServicesSample
                 //  Check if the queue item is older than 90 days, if it is, remove it and go to the next.
                 if (DateTimeOffset.UtcNow > currentQueueItem.ConsumeDate.AddDays(90))
                 {
-                    logMessage = $"Queue item for {currentQueueItem.UserId} is older than 90 days, removing from the ClawbackQueue";
+                    logMessage = $"Queue item for {currentQueueItem.DbKey} is older than 90 days, removing from the ClawbackQueue";
                     _logger.ServiceInfo(cV.Value, logMessage);
                     response.AppendFormat("INFO: {0}\n", logMessage);
                     await RemoveQueueItemAsync(currentQueueItem, cV);
@@ -207,7 +234,7 @@ namespace MicrosoftStoreServicesSample
                             var serviceToken = await storeClient.GetServiceAccessTokenAsync();
                             await userPurchaseId.RefreshStoreId(serviceToken.Token);
                             //  Update the CompletedConsumeTransaction with the new Token
-                            await UpdateQueueItemPurchaseId(currentQueueItem.UserId, userPurchaseId.Key, cV);
+                            await UpdateQueueItemPurchaseId(currentQueueItem.DbKey, userPurchaseId.Key, cV);
                         }
 
                         //  Create the request with the Revoked filter to omit
@@ -223,7 +250,7 @@ namespace MicrosoftStoreServicesSample
                         clawbackResults = await storeClient.ClawbackQueryAsync(clawbackRequest);
                     }
 
-                    logMessage = $"{clawbackResults.Items.Count} items found for {currentQueueItem.UserId}";
+                    logMessage = $"{clawbackResults.Items.Count} items found for {currentQueueItem.DbKey}";
                     _logger.ServiceInfo(cV.Value, logMessage);
                     response.AppendFormat("INFO: {0}\n", logMessage);
 
