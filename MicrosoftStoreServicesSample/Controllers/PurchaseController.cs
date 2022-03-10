@@ -405,12 +405,43 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
             else
             {
-                response.Append("No ClawbackActionItems found");
+                response.Append("No CompletedTransactionItems found");
             }
 
             FinalizeLoggingCv();
             return new OkObjectResult(response.ToString());
         }
+
+        /// <summary>
+        /// NOTE: This is a test API only and should not be part of a production deployment
+        /// Full list of all Clawback action items in the building state
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult<string> ViewCompletedTransactions()
+        {
+            InitializeLoggingCv();
+            var response = new StringBuilder("Getting CompletedTransactionItems:\n");
+
+            var transactions = new List<CompletedConsumeTransaction>();
+            using (var dbContext = ServerDBController.CreateDbContext(_config, _cV, _logger))
+            {
+                transactions = dbContext.CompletedConsumeTransactions.ToList();
+            }
+
+            if (transactions.Count > 0)
+            {
+                response.Append(FormatResponseForCompletedTransactions(transactions));
+            }
+            else
+            {
+                response.Append("No CompletedTransactionItems found");
+            }
+
+            FinalizeLoggingCv();
+            return new OkObjectResult(response.ToString());
+        }
+
 
         /// <summary>
         /// Utility function to help format the response to send back down to the client for the 
@@ -420,26 +451,28 @@ namespace MicrosoftStoreServicesSample.Controllers
         /// <returns></returns>
         private static string FormatResponseForCompletedTransactions(List<CompletedConsumeTransaction> transactions)
         {
-            var response = new StringBuilder("");
+            var response = new StringBuilder("\n");
             response.Append(
-                    "| TrackingId                          | Status       | ProductId    | Quantity | Consumed Date          | UserId | OrderId                              | OrderLineItemId                           |\n" +
-                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
-
+                    "| TrackingId                           | Status       | ProductId    | Quantity | UserId           | Consumed Date                 | OrderId                              | OrderLineItemId                      |\n" +
+                    "|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
+            
             foreach (var transaction in transactions)
             {
-                response.AppendFormat("| {0,-36} | {1,-12} | {2,-12} | {3,-8} | {4,-22} | {5,-36} | {6,-36} | {7,-36} | {8,-36} |\n",
+                response.AppendFormat("| {0,-36} | {1,-12} | {2,-12} | {3,-8} | {4,-16} | {5,-29} | {6,-36} | {7,-36} |\n",
                                       transaction.TrackingId,
                                       transaction.TransactionStatus,
                                       transaction.ProductId,
                                       transaction.QuantityConsumed,
-                                      transaction.ConsumeDate,
                                       transaction.UserId,
+                                      transaction.ConsumeDate, 
                                       transaction.OrderId,
                                       transaction.OrderLineItemId);
 
                 response.AppendFormat(
-                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n\n");
+                   "|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
             }
+
+            response.AppendFormat("\n");
 
             return response.ToString();
         }
