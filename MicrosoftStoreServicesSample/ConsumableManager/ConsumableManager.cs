@@ -451,6 +451,7 @@ namespace MicrosoftStoreServicesSample
                         //  server would probably want to keep the balance at 0 and have another
                         //  balance noting the discrepancy that the user has vs what they spent.
                         userConsumableBalance.Quantity -= ammountToRevoke;
+                        newBalance = userConsumableBalance.Quantity;
                     }
 
                     await dbContext.SaveChangesAsync();
