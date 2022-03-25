@@ -36,13 +36,13 @@ namespace MicrosoftStoreServicesSample.Controllers
         }
 
         /// <summary>
-        /// TODO: You will want to likely incorporate this flow into your authorization
-        /// handshake with the client ranter than having a dedicated endpoint to hand
-        /// these out.
-        /// 
         /// Sends the access tokens to the client that will be needed to create the
         /// required UserCollectionsId and UserPurchaseId for functional calls
         /// made to the store services.
+        /// 
+        /// TODO: You will want to likely incorporate this flow into your authorization
+        ///       handshake with the client ranter than having a dedicated endpoint to hand
+        ///       these out.
         /// </summary>
         /// <returns></returns>
         [HttpGet]
@@ -53,7 +53,6 @@ namespace MicrosoftStoreServicesSample.Controllers
             {
                 //  TODO: Replace this code obtaining and noting the UserId with your own
                 //        authentication ID system for each user.
-                //  make up a unique ID for this client
                 UserID = GetUserId()
             };
 
@@ -76,7 +75,7 @@ namespace MicrosoftStoreServicesSample.Controllers
         }
 
         /// <summary>
-        /// Gets the user's current collections data
+        /// Gets the user's current Collections data
         /// </summary>
         /// <param name="clientRequest">Requires at least the UserCollectionsId</param>
         /// <returns>Custom formatted text of the user's collections data</returns>
@@ -139,9 +138,9 @@ namespace MicrosoftStoreServicesSample.Controllers
             };
             queryRequest.Beneficiaries.Add(beneficiary);
 
-            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            if (!string.IsNullOrEmpty(clientRequest.Sbx))
             {
-                queryRequest.SandboxId = clientRequest.sbx;
+                queryRequest.SandboxId = clientRequest.Sbx;
             }
 
             if (clientRequest.EntitlementFilters != null &&
@@ -305,7 +304,6 @@ namespace MicrosoftStoreServicesSample.Controllers
                     throw new ArgumentException("No UserId in request header", nameof(clientRequest));
                 }
                 
-
                 pendingRequest = ConsumableManager.CreateAndVerifyPendingConsumeRequest(clientRequest);
             }
             catch (ArgumentException ex)
@@ -323,22 +321,6 @@ namespace MicrosoftStoreServicesSample.Controllers
             return new OkObjectResult(response.ToString());
         }
 
-        /// <summary>
-        /// Helper to convert the collections terminology to the more understandable
-        /// terms (recurring -> subscription, single -> purchase)
-        /// </summary>
-        /// <param name="acquisitionType"></param>
-        /// <returns></returns>
-        static string AcquisitionTypeFriendlyName(string acquisitionType)
-        {
-            return (acquisitionType.ToLower()) switch
-            {
-                "single" => "purchase",
-                "recurring" => "subscription",
-                _ => acquisitionType,
-            };
-        }
-
         ////////////////////////////////////////////////////////////////////
         //  Testing Endpoints - Not for RETAIL release
         ////////////////////////////////////////////////////////////////////
@@ -350,6 +332,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
         /// <summary>
         /// NOTE: This is a test API only and should not be part of a production deployment
+        /// 
         /// Adds a pending consume to the cache to simulate that a request was made but a response
         /// was not received and we need to replay the request to see what the result was.
         /// </summary>
@@ -398,11 +381,12 @@ namespace MicrosoftStoreServicesSample.Controllers
             await consumeManager.TrackPendingConsumeAsync(pendingRequest, _cV);
 
             response.Append("Consume added to Pending cache, but not sent to Collections\n");
-            response.AppendFormat("TrackingId:{0}\nUser:{1}\nConsumable:{2}\nQuantity:{3}",
+            response.AppendFormat("TrackingId:{0}\nUser:{1}\nConsumable:{2}\nQuantity:{3}\nSandboxId:{4}",
                                   pendingRequest.TrackingId,
                                   pendingRequest.UserId,
                                   pendingRequest.ProductId,
-                                  pendingRequest.RemoveQuantity);
+                                  pendingRequest.RemoveQuantity,
+                                  pendingRequest.SandboxId);
 
             FinalizeLoggingCv();
             return new OkObjectResult(response.ToString());
@@ -410,6 +394,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
         /// <summary>
         /// NOTE: This is a test API only and should not be part of a production deployment
+        /// 
         /// Returns to the caller all of the current balances of consumed products based
         /// on the UserIds the server is tracking
         /// </summary>
@@ -426,11 +411,12 @@ namespace MicrosoftStoreServicesSample.Controllers
 
             foreach (var consumeRequest in pendingConsumes)
             {
-                response.AppendFormat("TrackingId {0} for UserId {1} on product {2} quantity of {3}\n",
+                response.AppendFormat("TrackingId {0} for UserId {1} on product {2} quantity of {3} in {4}\n",
                                       consumeRequest.TrackingId,
                                       consumeRequest.UserId,
                                       consumeRequest.ProductId,
-                                      consumeRequest.RemoveQuantity);
+                                      consumeRequest.RemoveQuantity,
+                                      consumeRequest.SandboxId);
             }
 
             FinalizeLoggingCv();
@@ -473,6 +459,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
         /// <summary>
         /// NOTE: This is a test API only and should not be part of a production deployment
+        /// 
         /// Returns to the caller all of the current balances of consumed products based
         /// on the UserIds the server is tracking
         /// </summary>

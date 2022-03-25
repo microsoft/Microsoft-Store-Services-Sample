@@ -8,7 +8,6 @@
 //-----------------------------------------------------------------------------
 
 using Microsoft.CorrelationVector;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
@@ -47,6 +46,7 @@ namespace MicrosoftStoreServicesSample
         /// a retry is required.
         /// </summary>
         /// <param name="request"></param>
+        /// <param name="cV"></param>
         /// <returns></returns>
         public async Task<string> ConsumeAsync(PendingConsumeRequest request, CorrelationVector cV)
         {
@@ -134,18 +134,33 @@ namespace MicrosoftStoreServicesSample
             //        account within your own game service / database
             await GrantUserConsumableValue(request, cV);
 
-            //  If we have the UserPurchaseId then we can add this to the Clawback queue
-            //  for checking if the user requests a refund for this item later
+            //  Add the results of the Consume to our completed consume transactions
+            //  so that we can lookup the information on the transaction if the OrderIds
+            //  show up in a Clawback response
+            await AddToCompletedConsumeTransactions(request.UserId, consumeResult, cV);
+
+            //
+            //  Cache the UserPurchaseId so that Clawback can use it to make calls
+            //  for this user and check if a refund has been issued later on.
             if (!string.IsNullOrEmpty(request.UserPurchaseId))
             {
                 var clawManager = new ClawbackManager(_config,
                                                       _storeServicesClientFactory,
                                                       _logger);
-                await clawManager.AddConsumeToClawbackQueueAsync(request, cV);
+
+                //  TODO: Implement logic to indicate if the account supports single or
+                //        multi-purchasing accounts.  For the default sample we will
+                //        treat all accounts as single-purchasing.
+                //
+                //        For more information on single vs multi-purchasing accounts,
+                //        see the API summary for 
+                //        ConsumableManager.AddUserPurchaseIdToClawbackQueue().
+                bool isSinglePurchasingAccount = true;
+                await clawManager.AddUserPurchaseIdToClawbackQueue(request, isSinglePurchasingAccount, cV);
             }
             
             //  We have now taken action on the results of the consume and added the balance to the
-            //  user's account if it succeeded,  we can now remove this from the pending consume list
+            //  user's account if it succeeded. We can now remove this from the pending consume list.
             await RemovePendingConsumeAsync(request, cV);
 
             return response;
@@ -160,7 +175,7 @@ namespace MicrosoftStoreServicesSample
         {
             //  Check if the UserCollectionsId has expired, if so, refresh it
             var userCollectionsId = new UserStoreId(pendingRequest.UserCollectionsId);
-            if (DateTime.UtcNow > userCollectionsId.RefreshAfter)
+            if (DateTimeOffset.UtcNow > userCollectionsId.RefreshAfter)
             {
                 using (var storeClient = _storeServicesClientFactory.CreateClient())
                 {
@@ -182,7 +197,8 @@ namespace MicrosoftStoreServicesSample
                 ProductId = pendingRequest.ProductId,
                 RemoveQuantity = pendingRequest.RemoveQuantity,
                 TrackingId = pendingRequest.TrackingId,
-                IsUnmanagedConsumable = pendingRequest.IsUnmanagedConsumable
+                IsUnmanagedConsumable = pendingRequest.IsUnmanagedConsumable,
+                IncludeOrderIds = pendingRequest.IncludeOrderIds
             };
 
             return consumeRequest;
@@ -206,8 +222,14 @@ namespace MicrosoftStoreServicesSample
                 UserPurchaseId        = clientRequest.UserPurchaseId,
                 UserId                = clientRequest.UserId,
                 TrackingId            = clientRequest.TransactionId,
-                IsUnmanagedConsumable = clientRequest.IsUnmanagedConsumable
+                IsUnmanagedConsumable = clientRequest.IsUnmanagedConsumable,
+                IncludeOrderIds       = clientRequest.IncludeOrderids
             };
+
+            if (!string.IsNullOrEmpty(clientRequest.Sbx))
+            {
+                pendingConsumeRequest.SandboxId = clientRequest.Sbx;
+            }
 
             //  A TransactionId is required to validate if the consume succeeded
             //  in case of a network error and we don't get the response.  Once
@@ -264,6 +286,7 @@ namespace MicrosoftStoreServicesSample
         /// it went through or not with the Microsoft Store.
         /// </summary>
         /// <param name="request"></param>
+        /// <param name="cV"></param>
         /// <returns></returns>
         public async Task<bool> TrackPendingConsumeAsync(PendingConsumeRequest request, CorrelationVector cV)
         {
@@ -300,7 +323,8 @@ namespace MicrosoftStoreServicesSample
         /// <summary>
         /// Removes the consume request from the pending cache
         /// </summary>
-        /// <param name="request"></param>
+        /// <param name="request">Request item to be removed</param>
+        /// <param name="cV"></param>
         /// <returns></returns>
         private async Task RemovePendingConsumeAsync(PendingConsumeRequest request, CorrelationVector cV)
         {
@@ -321,6 +345,7 @@ namespace MicrosoftStoreServicesSample
         /// but we have not been able to validate we got a response
         /// back yet and may need to replay them.
         /// </summary>
+        /// <param name="cV"></param>
         /// <returns></returns>
         public List<PendingConsumeRequest> GetAllPendingRequests(CorrelationVector cV)
         {
@@ -346,7 +371,8 @@ namespace MicrosoftStoreServicesSample
         /// the appropriate in-game currency or item where the remaining balance is tracked
         /// through our game service.
         /// </summary>
-        /// <param name="request"></param>
+        /// <param name="request">Consume request that was completed</param>
+        /// <param name="cV"></param>
         /// <returns></returns>
         public async Task<int> GrantUserConsumableValue(PendingConsumeRequest request, CorrelationVector cV)
         {
@@ -371,7 +397,7 @@ namespace MicrosoftStoreServicesSample
                             ProductId = request.ProductId,
                             Quantity = (int)request.RemoveQuantity,
                             UserId = request.UserId,
-                            LookupKey = request.UserId + ":" + request.ProductId
+                            DbKey = request.UserId + ":" + request.ProductId
                         };
                         dbContext.Add(userConsumableBalance);
                         newBalance = (int)request.RemoveQuantity;
@@ -396,7 +422,10 @@ namespace MicrosoftStoreServicesSample
         /// Placeholder function that revokes any consumables that were refunded and detected
         /// by the clawback service.
         /// </summary>
-        /// <param name="request"></param>
+        /// <param name="userId">Id of the user to revoke from</param>
+        /// <param name="productId">Id of the product to revoke</param>
+        /// <param name="ammountToRevoke">Quantity to revoke from the user's account of the product</param>
+        /// <param name="cV"></param>
         /// <returns>New balance after the quantity was revoked</returns>
         public async Task<int> RevokeUserConsumableValue(string userId, string productId, int ammountToRevoke, CorrelationVector cV)
         {
@@ -422,6 +451,7 @@ namespace MicrosoftStoreServicesSample
                         //  server would probably want to keep the balance at 0 and have another
                         //  balance noting the discrepancy that the user has vs what they spent.
                         userConsumableBalance.Quantity -= ammountToRevoke;
+                        newBalance = userConsumableBalance.Quantity;
                     }
 
                     await dbContext.SaveChangesAsync();
@@ -436,8 +466,66 @@ namespace MicrosoftStoreServicesSample
         }
 
         /// <summary>
+        /// This will add an item in our completed list of consume transactions for each
+        /// OrderId info set in the consume response.  Since we can consume multiple orders
+        /// worth of consumables in a single consume transaction, we may end up with multiple
+        /// orders that were fulfilled with the same TrackingId.
+        /// </summary>
+        /// <param name="userId">User who got credit for the consume in the system</param>
+        /// <param name="response"></param>
+        /// <param name="cV"></param>
+        /// <returns></returns>
+        public async Task AddToCompletedConsumeTransactions(string userId, CollectionsConsumeResponse response, CorrelationVector cV)
+        {
+            foreach(var currentOrderTransaction in response.OrderTransactions)
+            {
+                var completedTransaction = new CompletedConsumeTransaction(userId, response.ProductId, response.TrackingId, currentOrderTransaction);
+                using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
+                {
+                    await dbContext.CompletedConsumeTransactions.AddAsync(completedTransaction);
+                    await dbContext.SaveChangesAsync();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Update the state of a transaction to identify if it has been part of a reconciliation or not
+        /// </summary>
+        /// <param name="DBkey">Unique GUID for the completed transaction in the DB</param>
+        /// <param name="newState">The new state for the item</param>
+        /// <param name="cV"></param>
+        /// <returns></returns>
+        public async Task UpdateCompletedConsumeTransactionState(string dbKey, CompletedConsumeTransactionState newState, CorrelationVector cV)
+        {
+            try
+            {
+                using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
+                {
+                    var transaction = dbContext.CompletedConsumeTransactions.Where(b => b.DbKey == dbKey).First();
+
+                    if(transaction != null)
+                    {
+                        _logger.ServiceInfo(cV.Value, $"Updating transaction {dbKey}'s status from {transaction.TransactionStatus.ToString()} to {newState.ToString()}");
+                        transaction.TransactionStatus = newState;
+                        await dbContext.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        _logger.ServiceWarning(cV.Value, $"Unable to find completed consume transaction with DBKey: {dbKey}", null);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.ServiceWarning(cV.Value,
+                    $"Unable to update consume transaction with DBKey: {dbKey}", e);
+            }
+        }
+
+        /// <summary>
         /// Helper to get all of the user balances in our tracking DB
         /// </summary>
+        /// <param name="cV"></param>
         /// <returns></returns>
         public List<UserConsumableBalance> GetAllUserBalances(CorrelationVector cV)
         {

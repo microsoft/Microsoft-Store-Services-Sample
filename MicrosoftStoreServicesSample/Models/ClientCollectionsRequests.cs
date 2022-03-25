@@ -14,7 +14,7 @@ namespace Microsoft.StoreServices
     public class ClientCollectionsQueryRequest
     {
         public string UserCollectionsId { get; set; }
-        public string sbx { get; set; }
+        public string Sbx { get; set; }
         public List<string> EntitlementFilters { get; set; }
     }
 
@@ -27,5 +27,7 @@ namespace Microsoft.StoreServices
         public string TransactionId { get; set; }
         public string UserId { get; set; }
         public bool IsUnmanagedConsumable { get; set; } = false;
+        public bool IncludeOrderids { get; set; } = false;
+        public string Sbx { get; set; }
     }
 }

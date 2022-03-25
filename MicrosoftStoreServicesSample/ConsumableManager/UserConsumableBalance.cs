@@ -20,7 +20,7 @@ namespace MicrosoftStoreServicesSample
         //  unique string to lookup a specific product balance on
         //  a per-user basis
         [Key]
-        public string LookupKey { get; set; }
+        public string DbKey { get; set; }
         public string UserId { get; set; }
         public string ProductId { get; set; }
         public int Quantity { get; set; }

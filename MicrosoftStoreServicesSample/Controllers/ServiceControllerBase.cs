@@ -73,8 +73,8 @@ namespace MicrosoftStoreServicesSample.Controllers
 
         /// <summary>
         /// TODO: Replace this with your own user ID tracking, for the sample we just ask the sample
-        /// client to identify the UserID.  For Xbox Live enabled titles this will come from the
-        /// X-token in the Authorization header.
+        ///       client to identify the UserID.  For Xbox Live enabled titles this will come from the
+        ///       X-token in the Authorization header.
         /// </summary>
         /// <returns>Unique ID for the caller</returns>
         protected string GetUserId()

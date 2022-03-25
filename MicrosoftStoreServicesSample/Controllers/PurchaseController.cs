@@ -120,9 +120,9 @@ namespace MicrosoftStoreServicesSample.Controllers
                 UserPurchaseId = clientRequest.UserPurchaseId
             };
 
-            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            if (!string.IsNullOrEmpty(clientRequest.Sbx))
             {
-                recurrenceRequest.SandboxId = clientRequest.sbx;
+                recurrenceRequest.SandboxId = clientRequest.Sbx;
             }
 
             var recurrenceResults = new RecurrenceQueryResponse();
@@ -205,14 +205,9 @@ namespace MicrosoftStoreServicesSample.Controllers
                 RecurrenceId = clientRequest.RecurrenceId
             };
 
-            if (!string.IsNullOrEmpty(clientRequest.sbx))
+            if (!string.IsNullOrEmpty(clientRequest.Sbx))
             {
-                recurrenceRequest.SandboxId = clientRequest.sbx;
-            }
-
-            if (!string.IsNullOrEmpty(clientRequest.sbx))
-            {
-                recurrenceRequest.SandboxId = clientRequest.sbx;
+                recurrenceRequest.SandboxId = clientRequest.Sbx;
             }
 
             if (clientRequest.ChangeType == RecurrenceChangeType.Extend.ToString())
@@ -285,6 +280,11 @@ namespace MicrosoftStoreServicesSample.Controllers
             else
             {
                 clawbackRequest.LineItemStateFilter.Add(LineItemStates.Purchased);
+            }
+
+            if (!string.IsNullOrEmpty(clientRequest.Sbx))
+            {
+                clawbackRequest.SandboxId = clientRequest.Sbx;
             }
 
             var clawbackResults = new ClawbackQueryResponse();
@@ -368,74 +368,12 @@ namespace MicrosoftStoreServicesSample.Controllers
             var clawManager = new ClawbackManager(_config, _storeServicesClientFactory, _logger);
 
             var clawbackQueue = clawManager.GetClawbackQueue(_cV);
-            foreach (var clawbackItem in clawbackQueue)
+            foreach (var clawbackQueueItem in clawbackQueue)
             {
-                response.AppendFormat("User {0}'s transaction {1} of product {2} for {3} quantity on {4}\n",
-                                      clawbackItem.UserId,
-                                      clawbackItem.TrackingId,
-                                      clawbackItem.ProductId,
-                                      clawbackItem.Quantity,
-                                      clawbackItem.ConsumeDate);
-            }
-
-            FinalizeLoggingCv();
-            return new OkObjectResult(response.ToString());
-        }
-
-        /// <summary>
-        /// NOTE: This is a test API only and should not be part of a production deployment
-        /// Full list of clawback action items (all states)
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet]
-        public ActionResult<string> ViewClawbackActionItems()
-        {
-            InitializeLoggingCv();
-            var response = new StringBuilder("Getting all ClawbackActionItems:\n");
-
-            using (var dbContext = ServerDBController.CreateDbContext(_config, _cV, _logger))
-            {
-                var actionItems = dbContext.ClawbackActionItems.ToList();
-
-                if (actionItems.Count > 0)
-                {
-                    response.Append(FormatResponseFromClawbackActionList(actionItems));
-                }
-                else
-                {
-                    response.Append("No ClawbackActionItems found");
-                }
-            }
-
-            FinalizeLoggingCv();
-            return new OkObjectResult(response.ToString());
-        }
-
-        /// <summary>
-        /// NOTE: This is a test API only and should not be part of a production deployment
-        /// Full list of all clawback action items in the pending state
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet]
-        public ActionResult<string> ViewPendingClawbackActionItems()
-        {
-            InitializeLoggingCv();
-            var response = new StringBuilder("Getting ClawbackActionItems that are Pending:\n");
-
-            using (var dbContext = ServerDBController.CreateDbContext(_config, _cV, _logger))
-            {
-                var pendingItems = dbContext.ClawbackActionItems.Where(
-                    b => b.State == ClawbackActionItemState.Pending
-                    ).ToList();
-
-                if (pendingItems.Count > 0)
-                {
-                    response.Append(FormatResponseFromClawbackActionList(pendingItems));
-                }
-                else
-                {
-                    response.Append("No ClawbackActionItems found");
-                }
+                response.AppendFormat("User {0}'s last transaction on {1}, {2}\n",
+                                      clawbackQueueItem.DbKey,
+                                      clawbackQueueItem.ConsumeDate,
+                                      clawbackQueueItem.UserPurchaseId);
             }
 
             FinalizeLoggingCv();
@@ -448,26 +386,26 @@ namespace MicrosoftStoreServicesSample.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<string> ViewBuildingClawbackActionItems()
+        public ActionResult<string> ViewReconciledTransactions()
         {
             InitializeLoggingCv();
-            var response = new StringBuilder("Getting ClawbackActionItems that are Building:\n");
+            var response = new StringBuilder("Getting CompletedTransactionItems that have been reconciled:\n");
 
-            var buildingItems = new List<ClawbackActionItem>();
+            var reconciledTransactions = new List<CompletedConsumeTransaction>();
             using (var dbContext = ServerDBController.CreateDbContext(_config, _cV, _logger))
             {
-                buildingItems = dbContext.ClawbackActionItems.Where(
-                    b => b.State == ClawbackActionItemState.Building
+                reconciledTransactions = dbContext.CompletedConsumeTransactions.Where(
+                    b => b.TransactionStatus == CompletedConsumeTransactionState.Reconciled
                     ).ToList();
             }
 
-            if (buildingItems.Count > 0)
+            if (reconciledTransactions.Count > 0)
             {
-                response.Append(FormatResponseFromClawbackActionList(buildingItems));
+                response.Append(FormatResponseForCompletedTransactions(reconciledTransactions));
             }
             else
             {
-                response.Append("No ClawbackActionItems found");
+                response.Append("No CompletedTransactionItems found");
             }
 
             FinalizeLoggingCv();
@@ -476,34 +414,34 @@ namespace MicrosoftStoreServicesSample.Controllers
 
         /// <summary>
         /// NOTE: This is a test API only and should not be part of a production deployment
-        /// Gets full list of all clawback items that have been completed and we took action on
+        /// Full list of all Clawback action items in the building state
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<string> ViewCompletedClawbackActionItems()
+        public ActionResult<string> ViewCompletedTransactions()
         {
             InitializeLoggingCv();
-            var response = new StringBuilder("Getting ClawbackActionItems that are Completed:\n");
+            var response = new StringBuilder("Getting CompletedTransactionItems:\n");
 
+            var transactions = new List<CompletedConsumeTransaction>();
             using (var dbContext = ServerDBController.CreateDbContext(_config, _cV, _logger))
             {
-                var completedItems = dbContext.ClawbackActionItems.Where(
-                    b => b.State == ClawbackActionItemState.Completed
-                    ).ToList();
+                transactions = dbContext.CompletedConsumeTransactions.ToList();
+            }
 
-                if (completedItems.Count > 0)
-                {
-                    response.Append(FormatResponseFromClawbackActionList(completedItems));
-                }
-                else
-                {
-                    response.Append("No ClawbackActionItems found");
-                }
+            if (transactions.Count > 0)
+            {
+                response.Append(FormatResponseForCompletedTransactions(transactions));
+            }
+            else
+            {
+                response.Append("No CompletedTransactionItems found");
             }
 
             FinalizeLoggingCv();
             return new OkObjectResult(response.ToString());
         }
+
 
         /// <summary>
         /// Utility function to help format the response to send back down to the client for the 
@@ -511,44 +449,32 @@ namespace MicrosoftStoreServicesSample.Controllers
         /// </summary>
         /// <param name="actionItems"></param>
         /// <returns></returns>
-        private static string FormatResponseFromClawbackActionList(List<ClawbackActionItem> actionItems)
+        private static string FormatResponseForCompletedTransactions(List<CompletedConsumeTransaction> transactions)
         {
-            var response = new StringBuilder("");
+            var response = new StringBuilder("\n");
             response.Append(
-                    "| Action State | ProductId    | Quantity | LineItemState | Purchased Date         | Refunded Date          | Candidate Id     | Candidate Consume Date | LineItemId                           |\n" +
-                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
-
-            foreach (var item in actionItems)
+                    "| TrackingId                           | Status       | ProductId    | Quantity | UserId           | Consumed Date                 | OrderId                              | OrderLineItemId                      |\n" +
+                    "|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
+            
+            foreach (var transaction in transactions)
             {
-                var candidates = item.GetClawbackCandidates();
-                var candidate = candidates.First();
-
-                response.AppendFormat("| {0,-12} | {1,-12} | {2,-8} | {3,-13} | {4,-22} | {5,-22} | {6,-16} | {7,-22} | {8,-36} |\n",
-                                      item.State,
-                                      item.ProductId,
-                                      item.Quantity,
-                                      item.LineItemState,
-                                      item.OrderPurchaseDate,
-                                      item.OrderRefundedDate,
-                                      candidate.UserId,
-                                      candidate.ConsumeDate,
-                                      item.LineItemId);
-
-                //  if there are more candidates due to building or pending states, list them below the first entry
-                for (int i = 1; i < candidates.Count; i++)
-                {
-                    response.AppendFormat(
-                        "| {0,-12} | {0,-12} | {0,-8} | {0,-13} | {0,-22} | {0,-22} | {1,-16} | {2,-22} | {0,-36} |\n",
-                        "",
-                        candidates[i].UserId,
-                        candidates[i].ConsumeDate);
-                }
+                response.AppendFormat("| {0,-36} | {1,-12} | {2,-12} | {3,-8} | {4,-16} | {5,-29} | {6,-36} | {7,-36} |\n",
+                                      transaction.TrackingId,
+                                      transaction.TransactionStatus,
+                                      transaction.ProductId,
+                                      transaction.QuantityConsumed,
+                                      transaction.UserId,
+                                      transaction.ConsumeDate, 
+                                      transaction.OrderId,
+                                      transaction.OrderLineItemId);
 
                 response.AppendFormat(
-                    "|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n\n");
+                   "|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
             }
+
+            response.AppendFormat("\n");
 
             return response.ToString();
         }
-    }
+    }    
 }

@@ -20,6 +20,15 @@ namespace MicrosoftStoreServicesSample
     public class PendingConsumeRequest
     {
         /// <summary>
+        /// Unique Id that is used to track the consume request and can
+        /// be used to replay the request and verify the resulting status.
+        /// Generally this would be the Key if you are using this in a DB
+        /// so it is marked with virtual so it can be overridden.
+        /// </summary>
+        [Key]
+        public string TrackingId { get; set; }
+
+        /// <summary>
         /// Unique Id for the user withing your system.
         /// </summary>
         public string UserId { get; set; }
@@ -43,13 +52,12 @@ namespace MicrosoftStoreServicesSample
         public string ProductId { get; set; }
 
         /// <summary>
-        /// Unique Id that is used to track the consume request and can
-        /// be used to replay the request and verify the resulting status.
-        /// Generally this would be the Key if you are using this in a DB
-        /// so it is marked with virtual so it can be overridden.
+        /// Requests that the Collections service include the ConsumeOrderTransaction
+        /// information representing the orders used to fulfill the consume request
+        /// and are required to properly reconcile refunds reported by the Clawback
+        /// service
         /// </summary>
-        [Key]
-        public string TrackingId { get; set; }
+        public bool IncludeOrderIds { get; set; } = true;
 
         /// <summary>
         /// Quantity to be removed from the user's balance of the consumable product.
@@ -61,5 +69,11 @@ namespace MicrosoftStoreServicesSample
         /// between them.
         /// </summary>
         public bool IsUnmanagedConsumable { get; set; }
+
+        /// <summary>
+        /// Defines the development SandboxId that results should be scoped to
+        /// </summary>
+        [JsonProperty("sbx")] public string SandboxId { get; set; }
+
     }
 }
