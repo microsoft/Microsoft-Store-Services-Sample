@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <UserSecretsId>d541f79d-2f04-47de-872e-00c9a8ea1afd</UserSecretsId>
     <Version>1.21.09</Version>
     <Authors>Cameron Goodwin</Authors>
