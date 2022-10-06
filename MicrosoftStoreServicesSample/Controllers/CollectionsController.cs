@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
+using Microsoft.StoreServices.Collections.V8;
 using MicrosoftStoreServicesSample.Models;
 using Newtonsoft.Json;
 using System;
@@ -125,12 +126,12 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
             
             //  Build our query request parameters to the Collections Service
-            var queryRequest = new CollectionsQueryRequest();
+            var queryRequest = new CollectionsV8QueryRequest();
 
             //  First, add the beneficiary value in the response body that
             //  uses the UserCollectionsId to scope the results to the user
             //  signed into the store on the client.
-            var beneficiary = new CollectionsRequestBeneficiary
+            var beneficiary = new CollectionsV8RequestBeneficiary
             {
                 Identitytype = "b2b",
                 UserCollectionsId = clientRequest.UserCollectionsId,
@@ -165,7 +166,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             //  the response to the client to remove call stack info.
             try
             {
-                var userCollection = new CollectionsQueryResponse();
+                var userCollection = new CollectionsV8QueryResponse();
                 using (var storeClient = _storeServicesClientFactory.CreateClient())
                 {
                     userCollection = await storeClient.CollectionsQueryAsync(queryRequest);

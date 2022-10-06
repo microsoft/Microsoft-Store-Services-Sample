@@ -11,6 +11,7 @@ using Microsoft.CorrelationVector;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
+using Microsoft.StoreServices.Collections.V8;
 using MicrosoftStoreServicesSample.PersistentDB;
 using System;
 using System.Collections.Generic;
@@ -56,7 +57,7 @@ namespace MicrosoftStoreServicesSample
             //  it is not already being tracked.
             await TrackPendingConsumeAsync(request, cV);
 
-            CollectionsConsumeResponse consumeResult;
+            CollectionsV8ConsumeResponse consumeResult;
             var consumeRequest = await CreateConsumeRequestFromPendingRequestAsync(request);
 
             //  Send the request to the Collections service using the 
@@ -171,7 +172,7 @@ namespace MicrosoftStoreServicesSample
         /// </summary>
         /// <param name="pendingRequest"></param>
         /// <returns></returns>
-        public async Task<CollectionsConsumeRequest> CreateConsumeRequestFromPendingRequestAsync(PendingConsumeRequest pendingRequest)
+        public async Task<CollectionsV8ConsumeRequest> CreateConsumeRequestFromPendingRequestAsync(PendingConsumeRequest pendingRequest)
         {
             //  Check if the UserCollectionsId has expired, if so, refresh it
             var userCollectionsId = new UserStoreId(pendingRequest.UserCollectionsId);
@@ -184,14 +185,14 @@ namespace MicrosoftStoreServicesSample
                 }
             }
 
-            var beneficary = new CollectionsRequestBeneficiary
+            var beneficary = new CollectionsV8RequestBeneficiary
             {
                 Identitytype = "b2b",
                 UserCollectionsId = userCollectionsId.Key,
                 LocalTicketReference = ""
             };
 
-            var consumeRequest = new CollectionsConsumeRequest
+            var consumeRequest = new CollectionsV8ConsumeRequest
             {
                 RequestBeneficiary = beneficary,
                 ProductId = pendingRequest.ProductId,
@@ -475,7 +476,7 @@ namespace MicrosoftStoreServicesSample
         /// <param name="response"></param>
         /// <param name="cV"></param>
         /// <returns></returns>
-        public async Task AddToCompletedConsumeTransactions(string userId, CollectionsConsumeResponse response, CorrelationVector cV)
+        public async Task AddToCompletedConsumeTransactions(string userId, CollectionsV8ConsumeResponse response, CorrelationVector cV)
         {
             foreach(var currentOrderTransaction in response.OrderTransactions)
             {
