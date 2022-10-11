@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
+using Microsoft.StoreServices.Collections;
 using Microsoft.StoreServices.Collections.V8;
 using MicrosoftStoreServicesSample.Models;
 using Newtonsoft.Json;
@@ -131,7 +132,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             //  First, add the beneficiary value in the response body that
             //  uses the UserCollectionsId to scope the results to the user
             //  signed into the store on the client.
-            var beneficiary = new CollectionsV8RequestBeneficiary
+            var beneficiary = new CollectionsRequestBeneficiary
             {
                 Identitytype = "b2b",
                 UserCollectionsId = clientRequest.UserCollectionsId,
@@ -151,7 +152,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
             else
             {
-                queryRequest.EntitlementFilters.Append(EntitlementFilterTypes.Subscription);
+                queryRequest.EntitlementFilters.Append(EntitlementFilterTypes.Pass);
             }
 
             //  TODO: Add any other request filtering that your service requires
@@ -166,10 +167,22 @@ namespace MicrosoftStoreServicesSample.Controllers
             //  the response to the client to remove call stack info.
             try
             {
-                var userCollection = new CollectionsV8QueryResponse();
+                var collectionsResponse = new CollectionsV8QueryResponse();
+                var usersCollection = new List<CollectionsV8Item>();
                 using (var storeClient = _storeServicesClientFactory.CreateClient())
                 {
-                    userCollection = await storeClient.CollectionsQueryAsync(queryRequest);
+                    do
+                    {
+                        collectionsResponse = await storeClient.CollectionsQueryAsync(queryRequest);
+
+                        //  If there was a continuation token add it to the next cycle.
+                        queryRequest.ContinuationToken = collectionsResponse.ContinuationToken; 
+                        
+                        //  Append the results to our collections list before possibly doing
+                        //  another request to get the rest.
+                        usersCollection.Concat(collectionsResponse.Items);  
+                    
+                    } while (collectionsResponse.ContinuationToken != null);
                 }
 
                 //  TODO: Operate on the results with your custom logic
@@ -179,7 +192,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                     "| ProductId    | Qty | Product Kind | Acquisition | IsTrial | Satisfied By |\n" +
                     "|--------------------------------------------------------------------------|\n");
 
-                foreach (var item in userCollection.Items)
+                foreach (var item in usersCollection)
                 {
 
                     //  Some Durable types have a quantity of 1, but for the output we will only show the
@@ -265,7 +278,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                 {
                     response.AppendLine("");
                     response.Append("RawResponse: ");
-                    response.Append(JsonConvert.SerializeObject(userCollection));
+                    response.Append(JsonConvert.SerializeObject(collectionsResponse));
                 }
 
             }

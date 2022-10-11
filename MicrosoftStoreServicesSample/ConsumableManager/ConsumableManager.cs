@@ -11,6 +11,7 @@ using Microsoft.CorrelationVector;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
+using Microsoft.StoreServices.Collections;
 using Microsoft.StoreServices.Collections.V8;
 using MicrosoftStoreServicesSample.PersistentDB;
 using System;
@@ -185,7 +186,7 @@ namespace MicrosoftStoreServicesSample
                 }
             }
 
-            var beneficary = new CollectionsV8RequestBeneficiary
+            var beneficary = new CollectionsRequestBeneficiary
             {
                 Identitytype = "b2b",
                 UserCollectionsId = userCollectionsId.Key,
