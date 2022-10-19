@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
 using Microsoft.StoreServices.Collections;
 using Microsoft.StoreServices.Collections.V8;
+using Microsoft.StoreServices.Collections.V9;
 using MicrosoftStoreServicesSample.Models;
 using Newtonsoft.Json;
 using System;
@@ -31,7 +32,7 @@ namespace MicrosoftStoreServicesSample.Controllers
         private readonly IConfiguration _config;
         public CollectionsController(IConfiguration config,
                                      IStoreServicesClientFactory storeServicesClientFactory,
-                                     ILogger<CollectionsController> logger) : 
+                                     ILogger<CollectionsController> logger) :
             base(storeServicesClientFactory, logger)
         {
             _config = config;
@@ -77,17 +78,16 @@ namespace MicrosoftStoreServicesSample.Controllers
         }
 
         /// <summary>
-        /// Gets the user's current Collections data
+        /// Gets the user's current Collections data from V8 B2BLicensePreview
         /// </summary>
         /// <param name="clientRequest">Requires at least the UserCollectionsId</param>
         /// <returns>Custom formatted text of the user's collections data</returns>
         [HttpPost]
-        public async Task<ActionResult<string>> Query([FromBody] ClientCollectionsQueryRequest clientRequest)
+        public async Task<ActionResult<string>> QueryV8([FromBody] ClientCollectionsQueryRequest clientRequest)
         {
             InitializeLoggingCv();
             var response = new StringBuilder("");
-            var trialData = new StringBuilder("");
-            bool includeTrialData = false;
+
             bool err = false;
 
             //  TODO: Replace this code obtaining and noting the UserId with your own
@@ -125,7 +125,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                     includeJson = true;
                 }
             }
-            
+
             //  Build our query request parameters to the Collections Service
             var queryRequest = new CollectionsV8QueryRequest();
 
@@ -155,6 +155,18 @@ namespace MicrosoftStoreServicesSample.Controllers
                 queryRequest.EntitlementFilters.Append(EntitlementFilterTypes.Pass);
             }
 
+            if (clientRequest.productIds != null)
+            {
+                foreach (var productId in clientRequest.productIds)
+                {
+                    var skuId = new ProductSkuId
+                    {
+                        ProductId = productId
+                    };
+                    queryRequest.ProductSkuIds.Add(skuId);
+                }
+            }
+
             //  TODO: Add any other request filtering that your service requires
             //        For example, filtering to specific ProductIds or product types
             //          
@@ -168,109 +180,27 @@ namespace MicrosoftStoreServicesSample.Controllers
             try
             {
                 var collectionsResponse = new CollectionsV8QueryResponse();
-                var usersCollection = new List<CollectionsV8Item>();
+                var usersCollection = new List<CollectionsItemBase>();
                 using (var storeClient = _storeServicesClientFactory.CreateClient())
                 {
                     do
                     {
-                        collectionsResponse = await storeClient.CollectionsQueryAsync(queryRequest);
+                        collectionsResponse = await storeClient.CollectionsV8QueryAsync(queryRequest);
 
                         //  If there was a continuation token add it to the next cycle.
-                        queryRequest.ContinuationToken = collectionsResponse.ContinuationToken; 
-                        
+                        queryRequest.ContinuationToken = collectionsResponse.ContinuationToken;
+
                         //  Append the results to our collections list before possibly doing
                         //  another request to get the rest.
-                        usersCollection.Concat(collectionsResponse.Items);  
-                    
+                        usersCollection.Concat(collectionsResponse.Items);
+
                     } while (collectionsResponse.ContinuationToken != null);
                 }
 
                 //  TODO: Operate on the results with your custom logic
                 //        For this sample we just iterate through the results, format them to
                 //        a readable string and send it back to the client as proof of flow.
-                response.Append(
-                    "| ProductId    | Qty | Product Kind | Acquisition | IsTrial | Satisfied By |\n" +
-                    "|--------------------------------------------------------------------------|\n");
-
-                foreach (var item in usersCollection)
-                {
-
-                    //  Some Durable types have a quantity of 1, but for the output we will only show the
-                    //  quantity if this is a consumable type product
-                    string quantityToDisplay = "";
-                    if( item.ProductKind == "UnmanagedConsumable" ||
-                        item.ProductKind == "Consumable")
-                    {
-                        quantityToDisplay = item.Quantity.ToString();
-                    }
-
-                    string formattedType = item.ProductKind;
-
-                    if(item.ProductKind == "UnmanagedConsumable")
-                    {
-                        formattedType = "U.Consumable";
-                    }
-
-                    response.AppendFormat("| {0,-12} | {1,-3} | {2,-12} | {3,-11} | {4,-7} ",
-                                            item.ProductId,
-                                            quantityToDisplay,
-                                            formattedType,
-                                            item.AcquisitionType,
-                                            item.TrialData.IsTrial);
-
-                    //  Check if this is enabled because of a satisfying entitlement from a bundle or subscription
-                    //  format to add those to the output on their own lines.
-                    if (item.SatisfiedByProductIds.Any())
-                    {
-                        bool isFirstEntitlement = true;
-                        foreach (var parent in item.SatisfiedByProductIds)
-                        {
-                            if (isFirstEntitlement)
-                            {
-                                isFirstEntitlement = false;
-                                response.AppendFormat("| {0,-12} |\n",
-                                                      parent);
-                            }
-                            else
-                            {
-                                response.AppendFormat("|                                                   {0,-12} |\n",
-                                                      parent);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        response.AppendFormat("|              |\n");
-                    }
-
-                    if (item.TrialData.IsTrial)
-                    {
-                        if(!includeTrialData)
-                        {
-                            includeTrialData = true;
-                            trialData.Append(
-                            "| ProductId    | IsInTrialPeriod | Remaining (DD.HH:MM:SS)        |\n" +
-                            "|-----------------------------------------------------------------|\n");
-                        }
-
-                        string remainingTrialTimeText = string.Format("{0}.{1}:{2}:{3}",
-                                                                     item.TrialData.TrialTimeRemaining.Days,
-                                                                     item.TrialData.TrialTimeRemaining.Hours,
-                                                                     item.TrialData.TrialTimeRemaining.Minutes,
-                                                                     item.TrialData.TrialTimeRemaining.Seconds);
-
-                        trialData.AppendFormat("| {0,-12} | {1,-15} | {2,-30} |\n",
-                                               item.ProductId,
-                                               item.TrialData.IsInTrialPeriod,
-                                               remainingTrialTimeText);
-                    }
-                }
-
-                if(includeTrialData)
-                {
-                    response.AppendLine("");
-                    response.Append(trialData);
-                }
+                FormatCollectionsResponse(usersCollection);
 
                 //  If this is from the Client sample, include the JSON so that it can display the items in the UI
                 //  properly
@@ -280,17 +210,253 @@ namespace MicrosoftStoreServicesSample.Controllers
                     response.Append("RawResponse: ");
                     response.Append(JsonConvert.SerializeObject(collectionsResponse));
                 }
-
             }
             catch (Exception ex)
             {
-                _logger.QueryError(_cV.Value, GetUserId(), "Error querying collections.", ex);
+                _logger.QueryError(_cV.Value, GetUserId(), "Error querying collections v8.", ex);
                 Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                response.AppendFormat("Unexpected error while querying the collections.  See logs for CV {0}", _cV.Value);
+                response.AppendFormat("Unexpected error while querying the collections v8.  See logs for CV {0}", _cV.Value);
             }
 
             FinalizeLoggingCv();
             return new OkObjectResult(response.ToString());
+        }
+
+        /// <summary>
+        /// Gets the user's current Collections data from V9 PublisherQuery
+        /// </summary>
+        /// <param name="clientRequest">Requires at least the UserCollectionsId</param>
+        /// <returns>Custom formatted text of the user's collections data</returns>
+        [HttpPost]
+        public async Task<ActionResult<string>> QueryV9([FromBody] ClientCollectionsQueryRequest clientRequest)
+        {
+            InitializeLoggingCv();
+            var response = new StringBuilder("");
+
+            bool err = false;
+
+            //  TODO: Replace this code obtaining and noting the UserId with your own
+            //        authentication ID system for each user or have the client just
+            //        put the ID you will understand into the API as the UserPartnerID
+            if (string.IsNullOrEmpty(GetUserId()))
+            {
+                response.AppendFormat("Missing {{UserId}} from Authorization header\n");
+                err = true;
+            }
+
+            //  Check that we have the other parameters for this operation
+            if (string.IsNullOrEmpty(clientRequest.UserCollectionsId))
+            {
+                response.AppendFormat("Request body missing CollectionsId. ex: {\"CollectionsId\": \"...\"}");
+                err = true;
+            }
+
+            //  Collections V9 requires that we provide the list of ProductIDs we want results for
+            if (clientRequest.productIds == null ||
+                clientRequest.productIds.Count == 0)
+            {
+                response.AppendFormat("Request body missing ProductIds. ex: {\"ProductIds\": [\"...\",\"...\"}");
+                err = true;
+            }
+
+            if (err)
+            {
+                //  We had a bad request so exit here
+                Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                _logger.QueryError(_cV.Value, GetUserId(), response.ToString(), null);
+                return response.ToString();
+            }
+
+            bool includeJson = false;
+            if (Request.Headers.ContainsKey("User-Agent"))
+            {
+                string userAgent = Request.Headers["User-Agent"];
+                if (!string.IsNullOrEmpty(userAgent) && userAgent == "Microsoft.StoreServicesClientSample")
+                {
+                    //  This call is from the Client sample that is tied to this sample, so include the added JSON
+                    //  in the response body so that it can use those values to update the UI.
+                    includeJson = true;
+                }
+            }
+
+            //  Build our query request parameters to the Collections Service
+            var queryRequest = new CollectionsV9QueryRequest();
+
+            //  First, add the beneficiary value in the response body that
+            //  uses the UserCollectionsId to scope the results to the user
+            //  signed into the store on the client.
+            var beneficiary = new CollectionsRequestBeneficiary
+            {
+                Identitytype = "b2b",
+                UserCollectionsId = clientRequest.UserCollectionsId,
+                LocalTicketReference = ""
+            };
+            queryRequest.Beneficiaries.Add(beneficiary);
+
+            if (!string.IsNullOrEmpty(clientRequest.Sbx))
+            {
+                queryRequest.SandboxId = clientRequest.Sbx;
+            }
+
+            foreach(var productId in clientRequest.productIds)
+            {
+
+                var skuId = new ProductSkuId
+                {
+                    ProductId = productId
+                };
+                queryRequest.ProductSkuIds.Add(skuId);
+            }
+
+            //  TODO: Add any other request filtering that your service requires
+            //        For example, status filtering
+
+            //  Send the request to the Collections service using a StoreServicesClient
+            //  This is wrapped in a try/catch to log any exceptions and to format
+            //  the response to the client to remove call stack info.
+            try
+            {
+                var collectionsResponse = new CollectionsV9QueryResponse();
+                var usersCollection = new List<CollectionsItemBase>();
+                using (var storeClient = _storeServicesClientFactory.CreateClient())
+                {
+                    do
+                    {
+                        collectionsResponse = await storeClient.CollectionsV9QueryAsync(queryRequest);
+
+                        //  If there was a continuation token add it to the next cycle.
+                        queryRequest.ContinuationToken = collectionsResponse.ContinuationToken;
+
+                        //  Append the results to our collections list before possibly doing
+                        //  another request to get the rest.
+                        usersCollection.Concat(collectionsResponse.Items);
+
+                    } while (collectionsResponse.ContinuationToken != null);
+                }
+
+                //  TODO: Operate on the results with your custom logic
+                //        For this sample we just iterate through the results, format them to
+                //        a readable string and send it back to the client as proof of flow.
+                FormatCollectionsResponse(usersCollection);
+
+                //  If this is from the Client sample, include the JSON so that it can display the items in the UI
+                //  properly
+                if (includeJson)
+                {
+                    response.AppendLine("");
+                    response.Append("RawResponse: ");
+                    response.Append(JsonConvert.SerializeObject(collectionsResponse));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.QueryError(_cV.Value, GetUserId(), "Error querying collections v9.", ex);
+                Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                response.AppendFormat("Unexpected error while querying the collections v9.  See logs for CV {0}", _cV.Value);
+            }
+
+            FinalizeLoggingCv();
+            return new OkObjectResult(response.ToString());
+        }
+
+        /// <summary>
+        /// Takes in the generic CollectionsItems list from a call to Collections v8 or v9 and 
+        /// formats the information into text that can be displayed in the client sample's 
+        /// debug output
+        /// </summary>
+        /// <param name="CollectionsItems"></param>
+        /// <returns>string</returns>
+        private string FormatCollectionsResponse(List<CollectionsItemBase> CollectionsItems)
+        {
+            var response = new StringBuilder("");
+            var trialData = new StringBuilder("");
+            bool includeTrialData = false;
+
+            response.Append(
+                    "| ProductId    | Qty | Product Kind | Acquisition | IsTrial | Satisfied By |\n" +
+                    "|--------------------------------------------------------------------------|\n");
+
+            foreach (var item in CollectionsItems)
+            {
+
+                //  Some Durable types have a quantity of 1, but for the output we will only show the
+                //  quantity if this is a consumable type product
+                string quantityToDisplay = "";
+                if (item.ProductKind == "UnmanagedConsumable" ||
+                    item.ProductKind == "Consumable")
+                {
+                    quantityToDisplay = item.Quantity.ToString();
+                }
+
+                string formattedType = item.ProductKind;
+
+                if (item.ProductKind == "UnmanagedConsumable")
+                {
+                    formattedType = "U.Consumable";
+                }
+
+                response.AppendFormat("| {0,-12} | {1,-3} | {2,-12} | {3,-11} | {4,-7} ",
+                                        item.ProductId,
+                                        quantityToDisplay,
+                                        formattedType,
+                                        item.AcquisitionType,
+                                        item.TrialData.IsTrial);
+
+                //  Check if this is enabled because of a satisfying entitlement from a bundle or subscription
+                //  format to add those to the output on their own lines.
+                if (item.SatisfiedByProductIds.Any())
+                {
+                    bool isFirstEntitlement = true;
+                    foreach (var parent in item.SatisfiedByProductIds)
+                    {
+                        if (isFirstEntitlement)
+                        {
+                            isFirstEntitlement = false;
+                            response.AppendFormat("| {0,-12} |\n",
+                                                  parent);
+                        }
+                        else
+                        {
+                            response.AppendFormat("|                                                   {0,-12} |\n",
+                                                  parent);
+                        }
+                    }
+                }
+                else
+                {
+                    response.AppendFormat("|              |\n");
+                }
+
+                if (item.TrialData.IsTrial)
+                {
+                    if (!includeTrialData)
+                    {
+                        includeTrialData = true;
+                        trialData.Append(
+                        "| ProductId    | IsInTrialPeriod | Remaining (DD.HH:MM:SS)        |\n" +
+                        "|-----------------------------------------------------------------|\n");
+                    }
+
+                    string remainingTrialTimeText = string.Format("{0}.{1}:{2}:{3}",
+                                                                 item.TrialData.TrialTimeRemaining.Days,
+                                                                 item.TrialData.TrialTimeRemaining.Hours,
+                                                                 item.TrialData.TrialTimeRemaining.Minutes,
+                                                                 item.TrialData.TrialTimeRemaining.Seconds);
+
+                    trialData.AppendFormat("| {0,-12} | {1,-15} | {2,-30} |\n",
+                                           item.ProductId,
+                                           item.TrialData.IsInTrialPeriod,
+                                           remainingTrialTimeText);
+                }
+            }
+
+            if (includeTrialData)
+            {
+                response.AppendLine("");
+                response.Append(trialData);
+            }
+
+            return response.ToString();
         }
 
         /// <summary>
