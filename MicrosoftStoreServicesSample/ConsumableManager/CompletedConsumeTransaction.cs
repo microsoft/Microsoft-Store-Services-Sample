@@ -11,7 +11,6 @@ using Microsoft.StoreServices.Collections.V8;
 using System;
 using System.ComponentModel.DataAnnotations;
 
-
 namespace MicrosoftStoreServicesSample
 {
     /// <summary>
