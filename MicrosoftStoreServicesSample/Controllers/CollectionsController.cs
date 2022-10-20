@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -150,14 +151,10 @@ namespace MicrosoftStoreServicesSample.Controllers
             {
                 queryRequest.EntitlementFilters = clientRequest.EntitlementFilters;
             }
-            else
-            {
-                queryRequest.EntitlementFilters.Append(EntitlementFilterTypes.Pass);
-            }
 
-            if (clientRequest.productIds != null)
+            if (clientRequest.ProductIds != null)
             {
-                foreach (var productId in clientRequest.productIds)
+                foreach (var productId in clientRequest.ProductIds)
                 {
                     var skuId = new ProductSkuId
                     {
@@ -192,7 +189,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
                         //  Append the results to our collections list before possibly doing
                         //  another request to get the rest.
-                        usersCollection.Concat(collectionsResponse.Items);
+                        usersCollection = (List<CollectionsItemBase>)usersCollection.Concat(collectionsResponse.Items);
 
                     } while (collectionsResponse.ContinuationToken != null);
                 }
@@ -252,8 +249,8 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             //  Collections V9 requires that we provide the list of ProductIDs we want results for
-            if (clientRequest.productIds == null ||
-                clientRequest.productIds.Count == 0)
+            if (clientRequest.ProductIds == null ||
+                clientRequest.ProductIds.Count == 0)
             {
                 response.AppendFormat("Request body missing ProductIds. ex: {\"ProductIds\": [\"...\",\"...\"}");
                 err = true;
@@ -298,7 +295,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                 queryRequest.SandboxId = clientRequest.Sbx;
             }
 
-            foreach(var productId in clientRequest.productIds)
+            foreach(var productId in clientRequest.ProductIds)
             {
 
                 var skuId = new ProductSkuId
@@ -329,7 +326,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
                         //  Append the results to our collections list before possibly doing
                         //  another request to get the rest.
-                        usersCollection.Concat(collectionsResponse.Items);
+                        usersCollection = (List<CollectionsItemBase>)usersCollection.Concat(collectionsResponse.Items);
 
                     } while (collectionsResponse.ContinuationToken != null);
                 }

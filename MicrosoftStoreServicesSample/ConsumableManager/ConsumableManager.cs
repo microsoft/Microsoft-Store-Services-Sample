@@ -29,9 +29,9 @@ namespace MicrosoftStoreServicesSample
     /// </summary>
     public class ConsumableManager
     {
-        private IConfiguration _config;
-        private IStoreServicesClientFactory _storeServicesClientFactory;
-        private ILogger _logger;
+        private readonly IConfiguration _config;
+        private readonly IStoreServicesClientFactory _storeServicesClientFactory;
+        private readonly ILogger _logger;
 
         public ConsumableManager(IConfiguration config,
                                  IStoreServicesClientFactory storeServicesClientFactory,
@@ -52,8 +52,6 @@ namespace MicrosoftStoreServicesSample
         /// <returns></returns>
         public async Task<string> ConsumeAsync(PendingConsumeRequest request, CorrelationVector cV)
         {
-            string response = "";
-
             //  This will cache the request into the pending consume list if
             //  it is not already being tracked.
             await TrackPendingConsumeAsync(request, cV);
@@ -61,6 +59,7 @@ namespace MicrosoftStoreServicesSample
             CollectionsV8ConsumeResponse consumeResult;
             var consumeRequest = await CreateConsumeRequestFromPendingRequestAsync(request);
 
+            string response;
             //  Send the request to the Collections service using the 
             //  StoreServicesClient from our factory.
             //  This is wrapped in a try/catch to log any exceptions and to format
@@ -507,7 +506,7 @@ namespace MicrosoftStoreServicesSample
 
                     if(transaction != null)
                     {
-                        _logger.ServiceInfo(cV.Value, $"Updating transaction {dbKey}'s status from {transaction.TransactionStatus.ToString()} to {newState.ToString()}");
+                        _logger.ServiceInfo(cV.Value, $"Updating transaction {dbKey}'s status from {transaction.TransactionStatus} to {newState.ToString()}");
                         transaction.TransactionStatus = newState;
                         await dbContext.SaveChangesAsync();
                     }

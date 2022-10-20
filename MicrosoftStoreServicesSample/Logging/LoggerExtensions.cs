@@ -17,7 +17,7 @@ namespace MicrosoftStoreServicesSample
     //  This sample is using LoggerMessage as outlined in the following article:
     //  https://docs.microsoft.com/en-us/aspnet/core/fundamentals/logging/loggermessage?view=aspnetcore-2.1
     //
-    //  As part of this, the format of the logging strings is pre-defined in the static class below rather
+    //  As part of this, the format of the logging strings is predefined in the static class below rather
     //  than at each point in the code using mLogger.LogError or mLogger.LogInformation.  This provides better
     //  performance even if it saves a small amount and allows all of the logging formatting to be managed
     //  in a single file rather than hundreds of lines spread out throughout the code.

@@ -16,7 +16,7 @@ namespace Microsoft.StoreServices
         public string UserCollectionsId { get; set; }
         public string Sbx { get; set; }
         public List<string> EntitlementFilters { get; set; }
-        public List<string> productIds { get; set; }
+        public List<string> ProductIds { get; set; }
     }
 
     public class ClientConsumeRequest
