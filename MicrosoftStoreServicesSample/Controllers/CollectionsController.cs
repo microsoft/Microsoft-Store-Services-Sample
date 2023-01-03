@@ -189,7 +189,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
                         //  Append the results to our collections list before possibly doing
                         //  another request to get the rest.
-                        usersCollection = (List<CollectionsItemBase>)usersCollection.Concat(collectionsResponse.Items);
+                        usersCollection.Concat(collectionsResponse.Items);
 
                     } while (collectionsResponse.ContinuationToken != null);
                 }
@@ -326,7 +326,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
                         //  Append the results to our collections list before possibly doing
                         //  another request to get the rest.
-                        usersCollection = (List<CollectionsItemBase>)usersCollection.Concat(collectionsResponse.Items);
+                        usersCollection.Concat(collectionsResponse.Items);
 
                     } while (collectionsResponse.ContinuationToken != null);
                 }
