@@ -73,7 +73,8 @@ namespace MicrosoftStoreServicesSample
         /// <summary>
         /// Defines the development SandboxId that results should be scoped to
         /// </summary>
-        [JsonProperty("sbx")] public string SandboxId { get; set; }
+        [JsonProperty("sbx")]
+        public string SandboxId { get; set; }
 
     }
 }

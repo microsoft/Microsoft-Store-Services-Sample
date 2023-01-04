@@ -27,6 +27,4 @@ namespace MicrosoftStoreServicesSample.Models
         public string Audience { get; set; }
         public string Token { get; set; }
     }
-
-
 }

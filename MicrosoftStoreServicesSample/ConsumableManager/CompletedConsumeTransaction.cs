@@ -7,10 +7,9 @@
 // license information.
 //-----------------------------------------------------------------------------
 
-using Microsoft.StoreServices;
+using Microsoft.StoreServices.Collections.V8;
 using System;
 using System.ComponentModel.DataAnnotations;
-
 
 namespace MicrosoftStoreServicesSample
 {

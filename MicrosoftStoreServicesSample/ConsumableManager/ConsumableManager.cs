@@ -11,6 +11,8 @@ using Microsoft.CorrelationVector;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
+using Microsoft.StoreServices.Collections;
+using Microsoft.StoreServices.Collections.V8;
 using MicrosoftStoreServicesSample.PersistentDB;
 using System;
 using System.Collections.Generic;
@@ -27,9 +29,9 @@ namespace MicrosoftStoreServicesSample
     /// </summary>
     public class ConsumableManager
     {
-        private IConfiguration _config;
-        private IStoreServicesClientFactory _storeServicesClientFactory;
-        private ILogger _logger;
+        private readonly IConfiguration _config;
+        private readonly IStoreServicesClientFactory _storeServicesClientFactory;
+        private readonly ILogger _logger;
 
         public ConsumableManager(IConfiguration config,
                                  IStoreServicesClientFactory storeServicesClientFactory,
@@ -50,15 +52,14 @@ namespace MicrosoftStoreServicesSample
         /// <returns></returns>
         public async Task<string> ConsumeAsync(PendingConsumeRequest request, CorrelationVector cV)
         {
-            string response = "";
-
             //  This will cache the request into the pending consume list if
             //  it is not already being tracked.
             await TrackPendingConsumeAsync(request, cV);
 
-            CollectionsConsumeResponse consumeResult;
+            CollectionsV8ConsumeResponse consumeResult;
             var consumeRequest = await CreateConsumeRequestFromPendingRequestAsync(request);
 
+            string response;
             //  Send the request to the Collections service using the 
             //  StoreServicesClient from our factory.
             //  This is wrapped in a try/catch to log any exceptions and to format
@@ -171,7 +172,7 @@ namespace MicrosoftStoreServicesSample
         /// </summary>
         /// <param name="pendingRequest"></param>
         /// <returns></returns>
-        public async Task<CollectionsConsumeRequest> CreateConsumeRequestFromPendingRequestAsync(PendingConsumeRequest pendingRequest)
+        public async Task<CollectionsV8ConsumeRequest> CreateConsumeRequestFromPendingRequestAsync(PendingConsumeRequest pendingRequest)
         {
             //  Check if the UserCollectionsId has expired, if so, refresh it
             var userCollectionsId = new UserStoreId(pendingRequest.UserCollectionsId);
@@ -191,7 +192,7 @@ namespace MicrosoftStoreServicesSample
                 LocalTicketReference = ""
             };
 
-            var consumeRequest = new CollectionsConsumeRequest
+            var consumeRequest = new CollectionsV8ConsumeRequest
             {
                 RequestBeneficiary = beneficary,
                 ProductId = pendingRequest.ProductId,
@@ -475,7 +476,7 @@ namespace MicrosoftStoreServicesSample
         /// <param name="response"></param>
         /// <param name="cV"></param>
         /// <returns></returns>
-        public async Task AddToCompletedConsumeTransactions(string userId, CollectionsConsumeResponse response, CorrelationVector cV)
+        public async Task AddToCompletedConsumeTransactions(string userId, CollectionsV8ConsumeResponse response, CorrelationVector cV)
         {
             foreach(var currentOrderTransaction in response.OrderTransactions)
             {
@@ -505,7 +506,7 @@ namespace MicrosoftStoreServicesSample
 
                     if(transaction != null)
                     {
-                        _logger.ServiceInfo(cV.Value, $"Updating transaction {dbKey}'s status from {transaction.TransactionStatus.ToString()} to {newState.ToString()}");
+                        _logger.ServiceInfo(cV.Value, $"Updating transaction {dbKey}'s status from {transaction.TransactionStatus} to {newState.ToString()}");
                         transaction.TransactionStatus = newState;
                         await dbContext.SaveChangesAsync();
                     }
