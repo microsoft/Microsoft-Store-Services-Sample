@@ -145,7 +145,7 @@ namespace MicrosoftStoreServicesSample
             //  for this user and check if a refund has been issued later on.
             if (!string.IsNullOrEmpty(request.UserPurchaseId))
             {
-                var clawManager = new ClawbackManager(_config,
+                var clawManager = new ClawbackV1Manager(_config,
                                                       _storeServicesClientFactory,
                                                       _logger);
 

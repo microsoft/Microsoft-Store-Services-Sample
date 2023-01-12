@@ -11,6 +11,7 @@ using Microsoft.CorrelationVector;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
+using Microsoft.StoreServices.Clawback.V1;
 using MicrosoftStoreServicesSample.PersistentDB;
 using System;
 using System.Collections.Generic;
@@ -20,13 +21,13 @@ using System.Threading.Tasks;
 
 namespace MicrosoftStoreServicesSample
 {
-    public class ClawbackManager
+    public class ClawbackV1Manager
     {
         protected IConfiguration _config;
         protected IStoreServicesClientFactory _storeServicesClientFactory;
         protected ILogger _logger;
 
-        public ClawbackManager(IConfiguration config,
+        public ClawbackV1Manager(IConfiguration config,
                                IStoreServicesClientFactory storeServicesClientFactory,
                                ILogger logger)
         {
@@ -78,7 +79,7 @@ namespace MicrosoftStoreServicesSample
         /// <returns></returns>
         public async Task<bool> AddUserPurchaseIdToClawbackQueue(PendingConsumeRequest request, bool isSinglePurchasingAccount, CorrelationVector cV)
         {
-            ClawbackQueueItem item;
+            ClawbackV1QueueItem item;
             try
             {
                 using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
@@ -101,7 +102,7 @@ namespace MicrosoftStoreServicesSample
                         //  This item either doesn't already exist if single-purchasing
                         //  or is a multi-purchasing account and needs a unique Id per
                         //  transaction.
-                        item = new ClawbackQueueItem(request, isSinglePurchasingAccount);
+                        item = new ClawbackV1QueueItem(request, isSinglePurchasingAccount);
                         await dbContext.ClawbackQueue.AddAsync(item);
                     }
 
@@ -127,7 +128,7 @@ namespace MicrosoftStoreServicesSample
         /// </summary>
         /// <param name="cV"></param>
         /// <returns></returns>
-        public List<ClawbackQueueItem> GetClawbackQueue(CorrelationVector cV)
+        public List<ClawbackV1QueueItem> GetClawbackQueue(CorrelationVector cV)
         {
             using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
             {
@@ -135,7 +136,7 @@ namespace MicrosoftStoreServicesSample
             }
         }
 
-        private async Task RemoveQueueItemAsync(ClawbackQueueItem queueItem, CorrelationVector cV)
+        private async Task RemoveQueueItemAsync(ClawbackV1QueueItem queueItem, CorrelationVector cV)
         {
             try
             {
@@ -224,7 +225,7 @@ namespace MicrosoftStoreServicesSample
                 {
                     //  Step 2:
                     //  Call the clawback service for this UserPurchaseId
-                    var clawbackResults = new ClawbackQueryResponse();
+                    var clawbackResults = new ClawbackV1QueryResponse();
                     using (var storeClient = _storeServicesClientFactory.CreateClient())
                     {
                         //  Check if the UserPurchaseId needs to be refreshed
@@ -240,14 +241,14 @@ namespace MicrosoftStoreServicesSample
                         //  Create the request with the Revoked filter to omit
                         //  active entitlements that have not been refunded and
                         //  refunded items that our service did not consume yet
-                        var clawbackRequest = new ClawbackQueryRequest()
+                        var clawbackRequest = new ClawbackV1QueryRequest()
                         {
                             UserPurchaseId = userPurchaseId.Key,
                             LineItemStateFilter = new List<string>() { LineItemStates.Revoked }
                         };
 
                         //  Make the request 
-                        clawbackResults = await storeClient.ClawbackQueryAsync(clawbackRequest);
+                        clawbackResults = await storeClient.ClawbackV1QueryAsync(clawbackRequest);
                     }
 
                     logMessage = $"{clawbackResults.Items.Count} items found for {currentQueueItem.DbKey}";

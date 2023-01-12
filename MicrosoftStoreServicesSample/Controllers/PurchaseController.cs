@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
+using Microsoft.StoreServices.Clawback.V1;
 using MicrosoftStoreServicesSample.Models;
 using MicrosoftStoreServicesSample.PersistentDB;
 using Newtonsoft.Json;
@@ -268,7 +269,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
             var response = new StringBuilder("");
 
-            var clawbackRequest = new ClawbackQueryRequest
+            var clawbackRequest = new ClawbackV1QueryRequest
             {
                 UserPurchaseId = clientRequest.UserPurchaseId
             };
@@ -287,10 +288,10 @@ namespace MicrosoftStoreServicesSample.Controllers
                 clawbackRequest.SandboxId = clientRequest.Sbx;
             }
 
-            var clawbackResults = new ClawbackQueryResponse();
+            var clawbackResults = new ClawbackV1QueryResponse();
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
-                clawbackResults = await storeClient.ClawbackQueryAsync(clawbackRequest);                                                     
+                clawbackResults = await storeClient.ClawbackV1QueryAsync(clawbackRequest);                                                     
             }
 
             try
@@ -343,7 +344,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             InitializeLoggingCv();
             var response = new StringBuilder("Running Clawback Reconciliation Task...  \n");
 
-            var clawManager = new ClawbackManager(_config, _storeServicesClientFactory, _logger);
+            var clawManager = new ClawbackV1Manager(_config, _storeServicesClientFactory, _logger);
             response.Append(await clawManager.RunClawbackReconciliationAsync(_cV));
 
             FinalizeLoggingCv();
@@ -365,7 +366,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             InitializeLoggingCv();
             var response = new StringBuilder("Clawback items being tracked:\n");
 
-            var clawManager = new ClawbackManager(_config, _storeServicesClientFactory, _logger);
+            var clawManager = new ClawbackV1Manager(_config, _storeServicesClientFactory, _logger);
 
             var clawbackQueue = clawManager.GetClawbackQueue(_cV);
             foreach (var clawbackQueueItem in clawbackQueue)
