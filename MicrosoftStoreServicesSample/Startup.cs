@@ -100,7 +100,7 @@ namespace MicrosoftStoreServicesSample
             //  Initializing Access Tokens and StoreServicesClientFactory
             //-------------------------------------------------------------
             {
-                _logger.StartupInfo(_cV.Value, "Initializing CachedAccessTokenProvider with AAD Id's and secrets...");
+                _logger.StartupInfo(_cV.Value, "Initializing StoreServicesCachedTokenProvider with AAD Id's and secrets...");
 
                 var tenantId = Configuration.GetValue(ServiceConstants.AADTenantIdKey, "");
                 var clientId = Configuration.GetValue(ServiceConstants.AADClientIdKey, "");
@@ -121,18 +121,18 @@ namespace MicrosoftStoreServicesSample
 
                 //  Override the HttpClient creation functions in the token provider
                 //  and store client to be from our httpClientFactory for better performance.
-                CachedAccessTokenProvider.CreateHttpClientFunc = httpClientFactory.CreateClient;
+                StoreServicesCachedTokenProvider.CreateHttpClientFunc = httpClientFactory.CreateClient;
                 StoreServicesClient.CreateHttpClientFunc = httpClientFactory.CreateClient;
 
                 _logger.StartupInfo(_cV.Value, "Initializing AAD Tokens...");
-                var cachedAccessTokenProvider = new CachedAccessTokenProvider(serverCache,
+                var cachedTokenProvider = new StoreServicesCachedTokenProvider(serverCache,
                                                                               tenantId,
                                                                               clientId,
                                                                               clientSecret);
 
-                var serviceTokenTask = cachedAccessTokenProvider.GetServiceAccessTokenAsync();
-                var purchaseTokenTask = cachedAccessTokenProvider.GetPurchaseAccessTokenAsync();
-                var collectionsTokenTask = cachedAccessTokenProvider.GetCollectionsAccessTokenAsync();
+                var serviceTokenTask = cachedTokenProvider.GetServiceAccessTokenAsync();
+                var purchaseTokenTask = cachedTokenProvider.GetPurchaseAccessTokenAsync();
+                var collectionsTokenTask = cachedTokenProvider.GetCollectionsAccessTokenAsync();
 
                 serviceTokenTask.Wait();
                 purchaseTokenTask.Wait();
@@ -155,7 +155,7 @@ namespace MicrosoftStoreServicesSample
                 }
 
                 _logger.StartupInfo(_cV.Value, "Initializing StoreServicesClientFactory...");
-                storeServiceClientFactory.Initialize(serviceIdentity, cachedAccessTokenProvider);
+                storeServiceClientFactory.Initialize(serviceIdentity, cachedTokenProvider);
             }
 
             //  Ensure our persistent DB is created
