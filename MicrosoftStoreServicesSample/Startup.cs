@@ -130,6 +130,12 @@ namespace MicrosoftStoreServicesSample
                                                                               clientId,
                                                                               clientSecret);
 
+                //  todo:cagood - test only, remove later
+                var clawbackSASTokenTask = cachedTokenProvider.GetClawbackV2SASTokenAsync();
+                clawbackSASTokenTask.Wait();
+                _logger.StartupInfo(_cV.Value,
+                    $"ClawbackSASToken:{clawbackSASTokenTask.Result.Token}");
+
                 var serviceTokenTask = cachedTokenProvider.GetServiceAccessTokenAsync();
                 var purchaseTokenTask = cachedTokenProvider.GetPurchaseAccessTokenAsync();
                 var collectionsTokenTask = cachedTokenProvider.GetCollectionsAccessTokenAsync();
@@ -143,7 +149,7 @@ namespace MicrosoftStoreServicesSample
                     $"Service:{serviceTokenTask.Result.Token}, " +
                     $"Collections:{collectionsTokenTask.Result.Token}, " +
                     $"Purchase:{purchaseTokenTask.Result.Token}");
-
+              
                 //  Now get the ServiceIdenty and we can configure the IStoreServicesFactory
                 var serviceIdentity = Configuration.GetValue(ServiceConstants.ServiceIdentity, ServiceConstants.ServiceName);
                 if (string.IsNullOrEmpty(serviceIdentity))
