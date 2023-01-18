@@ -12,9 +12,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
 using Microsoft.StoreServices.Clawback.V1;
-using MicrosoftStoreServicesSample.Models;
+using Microsoft.StoreServices.Clawback.V2;
 using MicrosoftStoreServicesSample.PersistentDB;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +24,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 {
     /// <summary>
     /// Example endpoints to demonstrate the abilities of using the
-    /// Clawback V2 Event service to query refunded products
+    /// Clawback V2 ClawbackEvent service to query refunded products
     /// </summary>
     [ApiController]
     [Route("[controller]/[action]")]
@@ -126,22 +125,40 @@ namespace MicrosoftStoreServicesSample.Controllers
         }
 
         /// <summary>
+        /// Returns any refund events found in the Clawback v2 service
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public async Task<ActionResult<string>> ClawbackV2Query()
+        {
+            string returnVal = "";
+
+            using (var storeClient = _storeServicesClientFactory.CreateClient())
+            {
+                var queryResult = await storeClient.ClawbackV2QueryEventsAsync();
+                returnVal = FormatResponseForClawbackV2Messages(queryResult);
+            }
+
+            return returnVal;
+        }
+
+        /// <summary>
         /// Returns any refunds found by the Clawback service for the UserPurchaseId provided
         /// </summary>
-        /// <param name="clientRequest"></param>
         /// <returns></returns>
         [HttpGet]
         public async Task<ActionResult<string>> ClawbackV2Peek()
         {
+            string returnVal = "";
 
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
-                    //  todo:cagood - test only
-                    var result = await storeClient.ClawbackV2QueryEventsAsync();
-
+                //  todo:cagood - test only
+                var peekResult = await storeClient.ClawbackV2PeekEventsAsync();
+                returnVal = FormatResponseForClawbackV2Messages(peekResult);
             }
 
-            return "";
+            return returnVal;
         }
 
         /// <summary>
@@ -286,6 +303,44 @@ namespace MicrosoftStoreServicesSample.Controllers
 
                 response.AppendFormat(
                    "|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n");
+            }
+
+            response.AppendFormat("\n");
+
+            return response.ToString();
+        }
+
+        /// <summary>
+        /// Utility function to help format the response to send back down to the client for the 
+        /// test endpoints
+        /// </summary>
+        /// <param name="actionItems"></param>
+        /// <returns></returns>
+        private static string FormatResponseForClawbackV2Messages(List<ClawbackV2Message> clawbackMessages)
+        {
+            var response = new StringBuilder("\n");
+            response.Append(
+                    "| Message Id                           | Refund Initiated Date         | Clawback Event Id                    | Source            | RefundState | ProductId    | Purchase Date                 | OrderId                              | LineItemId                           | Quantity |\r\n" +
+                    "|--------------------------------------|-------------------------------|--------------------------------------|-------------------|-------------|--------------|-------------------------------|--------------------------------------|--------------------------------------|----------|\r\n");
+
+
+            foreach (var clawbackMessage in clawbackMessages)
+            {
+                response.AppendFormat("| {0,-36} | {1,-29} | {2,-36} | {3,-17} | {4,-11} | {5,-12} | {6,-29} | {7,-36} | {8,-36} | {9,-8} |\n",
+                                      clawbackMessage.MessageId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.RefundInitiatedDate,
+                                      clawbackMessage.ClawbackEvent.Id,
+                                      clawbackMessage.ClawbackEvent.Source,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.RefundState,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.ProductId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.PurchasedDate,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.OrderId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.LineItemId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.Quantity
+                                      );
+
+                response.AppendFormat(
+                    "|--------------------------------------|-------------------------------|--------------------------------------|-------------------|-------------|--------------|-------------------------------|--------------------------------------|--------------------------------------|----------|\r\n");
             }
 
             response.AppendFormat("\n");
