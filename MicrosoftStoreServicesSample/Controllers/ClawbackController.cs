@@ -135,7 +135,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
-                var queryResult = await storeClient.ClawbackV2QueryEventsAsync();
+                var queryResult = await storeClient.ClawbackV2QueryEventsAsync(32);
                 returnVal = FormatResponseForClawbackV2Messages(queryResult);
             }
 
@@ -154,7 +154,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
                 //  todo:cagood - test only
-                var peekResult = await storeClient.ClawbackV2PeekEventsAsync();
+                var peekResult = await storeClient.ClawbackV2PeekEventsAsync(32);
                 returnVal = FormatResponseForClawbackV2Messages(peekResult);
             }
 
@@ -320,17 +320,18 @@ namespace MicrosoftStoreServicesSample.Controllers
         {
             var response = new StringBuilder("\n");
             response.Append(
-                    "| Message Id                           | Refund Initiated Date         | Clawback Event Id                    | Source            | RefundState | ProductId    | Purchase Date                 | OrderId                              | LineItemId                           | Quantity |\r\n" +
-                    "|--------------------------------------|-------------------------------|--------------------------------------|-------------------|-------------|--------------|-------------------------------|--------------------------------------|--------------------------------------|----------|\r\n");
+                    "| Message Id                           | Refund Initiated Date         | Clawback Event Id                    | Source            | Sandbox    | RefundState | ProductId    | Purchase Date                 | OrderId                              | LineItemId                           | Quantity |\r\n" +
+                    "|--------------------------------------|-------------------------------|--------------------------------------|-------------------|------------|-------------|--------------|-------------------------------|--------------------------------------|--------------------------------------|----------|\r\n");
 
 
             foreach (var clawbackMessage in clawbackMessages)
             {
-                response.AppendFormat("| {0,-36} | {1,-29} | {2,-36} | {3,-17} | {4,-11} | {5,-12} | {6,-29} | {7,-36} | {8,-36} | {9,-8} |\n",
+                response.AppendFormat("| {0,-36} | {1,-29} | {2,-36} | {3,-17} | {4,-10} | {5,-11} | {6,-12} | {7,-29} | {8,-36} | {9,-36} | {10,-8} |\n",
                                       clawbackMessage.MessageId,
                                       clawbackMessage.ClawbackEvent.OrderInfo.RefundInitiatedDate,
                                       clawbackMessage.ClawbackEvent.Id,
                                       clawbackMessage.ClawbackEvent.Source,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.SandboxId,
                                       clawbackMessage.ClawbackEvent.OrderInfo.RefundState,
                                       clawbackMessage.ClawbackEvent.OrderInfo.ProductId,
                                       clawbackMessage.ClawbackEvent.OrderInfo.PurchasedDate,
@@ -340,7 +341,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                                       );
 
                 response.AppendFormat(
-                    "|--------------------------------------|-------------------------------|--------------------------------------|-------------------|-------------|--------------|-------------------------------|--------------------------------------|--------------------------------------|----------|\r\n");
+                    "|--------------------------------------|-------------------------------|--------------------------------------|-------------------|------------|-------------|--------------|-------------------------------|--------------------------------------|--------------------------------------|----------|\r\n");
             }
 
             response.AppendFormat("\n");
