@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------------
-// ClawbackManager.cs
+// ClawbackV1Manager.cs
 //
 // Xbox Advanced Technology Group (ATG)
 // Copyright (C) Microsoft Corporation. All rights reserved.

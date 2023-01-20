@@ -184,6 +184,28 @@ namespace MicrosoftStoreServicesSample.Controllers
         }
 
         /// <summary>
+        /// TODO: This endpoint would not be an endpoint in your deployed service.  It would be
+        /// function that you would run once a day and be controlled without a client request.
+        /// 
+        /// Runs the task to go through and reconcile all of the items in the Clawback Queue to find
+        /// if there were any refunds issued for items that we have already consumed and therefore
+        /// need to revoke / remove items from the user's account balance on our server
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public async Task<ActionResult<string>> RunClawbackV2Validation()
+        {
+            InitializeLoggingCv();
+            var response = new StringBuilder("Running Clawback Reconciliation Task...  \n");
+
+            var clawManager = new ClawbackV2Manager(_config, _storeServicesClientFactory, _logger);
+            response.Append(await clawManager.RunClawbackV2ReconciliationAsync("XDKS.1", _cV));
+
+            FinalizeLoggingCv();
+            return new OkObjectResult(response.ToString());
+        }
+
+        /// <summary>
         /// NOTE: This is a test API only and should not be part of a production deployment
         /// Returns to the items in the Clawback queue which represent consumes that we are
         /// acted on and the UserId was granted value in their game account for the consume.
@@ -191,7 +213,7 @@ namespace MicrosoftStoreServicesSample.Controllers
         /// we can remove those items from the user's balance within our own databases.
         /// </summary>
         /// <returns></returns>
-        
+
         [HttpGet]
         public ActionResult<string> ViewClawbackQueue()
         {
@@ -274,7 +296,6 @@ namespace MicrosoftStoreServicesSample.Controllers
             FinalizeLoggingCv();
             return new OkObjectResult(response.ToString());
         }
-
 
         /// <summary>
         /// Utility function to help format the response to send back down to the client for the 
