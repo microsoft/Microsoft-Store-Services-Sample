@@ -22,6 +22,7 @@ using System.Net.Http;
 
 namespace MicrosoftStoreServicesSample
 {
+
     public class Startup
     {
         private ILogger _logger;
@@ -130,12 +131,6 @@ namespace MicrosoftStoreServicesSample
                                                                               clientId,
                                                                               clientSecret);
 
-                //  todo:cagood - test only, remove later
-                var clawbackSASTokenTask = cachedTokenProvider.GetClawbackV2SASTokenAsync();
-                clawbackSASTokenTask.Wait();
-                _logger.StartupInfo(_cV.Value,
-                    $"ClawbackSASToken:{clawbackSASTokenTask.Result.Token}");
-
                 var serviceTokenTask = cachedTokenProvider.GetServiceAccessTokenAsync();
                 var purchaseTokenTask = cachedTokenProvider.GetPurchaseAccessTokenAsync();
                 var collectionsTokenTask = cachedTokenProvider.GetCollectionsAccessTokenAsync();
@@ -168,7 +163,7 @@ namespace MicrosoftStoreServicesSample
             using (var context = PersistentDB.ServerDBController.CreateDbContext(Configuration, _cV, _logger))
             {
                 try
-                {
+                { 
                     if (context.Database.EnsureCreated())
                     {
                         _logger.StartupInfo(_cV.Value, "PersistentDB is now created");
@@ -183,6 +178,12 @@ namespace MicrosoftStoreServicesSample
                     _logger.StartupError(_cV.Value, "Unable to validate PersistentDB connection and creation", ex);
                 }
             }
+
+            //  Todo: For testing you can use this function to pre-populate the database with values
+            //  to re-run tests when using Clawback and not deleting the messages from the queue.
+            var consumeManager = new ConsumableManager(Configuration, storeServiceClientFactory, _logger);
+            var testPopulateTask = consumeManager.PopulateTestValuesInDatabases(_cV);
+            testPopulateTask.Wait();
 
             _logger.StartupInfo(_cV.Value, "Server initialized and ready for requests");
         }

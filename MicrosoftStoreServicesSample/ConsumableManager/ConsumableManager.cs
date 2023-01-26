@@ -7,6 +7,7 @@
 // license information.
 //-----------------------------------------------------------------------------
 
+using Azure;
 using Microsoft.CorrelationVector;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -544,6 +545,50 @@ namespace MicrosoftStoreServicesSample
             }
 
             return result;
+        }
+
+        public async Task<int> PopulateTestValuesInDatabases(CorrelationVector cV)
+        {
+            var testTransactions = new List<CompletedConsumeTransaction>
+            {
+
+
+                //  Account 01 - Multiple transactions and purchases
+                new CompletedConsumeTransaction("2 Dev 908710919", "9N0297GK108W", "fb120de0-3ef4-4ba3-a659-465d018c0243", new ConsumeOrderTransactionContractV8() { OrderId = "70fd35f2-7e4a-4f27-8df3-a673a5a4d9d9", OrderLineItemId ="230e9063-bffe-411a-8aa1-6f99ca091452", QuantityConsumed=1}),
+                new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "334b2fb1-4b4d-474d-ad7d-2f886b3eaecd", new ConsumeOrderTransactionContractV8() { OrderId = "a19d5e0d-f738-46ac-b56c-8d32367d163b", OrderLineItemId ="54b29900-8ea5-4c2d-9fb8-312e4b4d8d0c", QuantityConsumed=10}),
+                new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "0cd4dcc4-4899-48a6-b72f-0308f48fbdb0", new ConsumeOrderTransactionContractV8() { OrderId = "f8368c62-966d-4036-a795-5a4b65c79468", OrderLineItemId ="715d3f99-24f5-4e15-adc3-0393bb53ff46", QuantityConsumed=10}),
+                new CompletedConsumeTransaction("2 Dev 908710919", "9PFL4RQTB1P6", "8295b0ed-314f-4b3b-a8d0-a24b01e0e1cf", new ConsumeOrderTransactionContractV8() { OrderId = "8d25bd33-9856-453a-b494-b390a5cde27c", OrderLineItemId ="3371ce65-79f7-4c81-9910-f718eaba3efb", QuantityConsumed=1}),
+                new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "d1985ed5-e1a3-4a4a-ab22-2a1e936dfda3", new ConsumeOrderTransactionContractV8() { OrderId = "97c6d89d-6f65-45a8-92e7-d4ceecc09f6e", OrderLineItemId ="9abc1045-b08c-4f12-a7cb-1a5118455aca", QuantityConsumed=2}),
+                new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "a237d06a-0e1d-480a-bd91-a710f8305bf5", new ConsumeOrderTransactionContractV8() { OrderId = "97c6d89d-6f65-45a8-92e7-d4ceecc09f6e", OrderLineItemId ="9abc1045-b08c-4f12-a7cb-1a5118455aca", QuantityConsumed=8}),
+                new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "a237d06a-0e1d-480a-bd91-a710f8305bf5", new ConsumeOrderTransactionContractV8() { OrderId = "ca732613-4f4e-4042-bb8c-13bd05e97df6", OrderLineItemId ="60f0a1c0-9c14-4b43-bb06-93ef9b82c4b9", QuantityConsumed=2}),
+                new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "e71ab4a3-19f0-4251-a61c-9304678463fc", new ConsumeOrderTransactionContractV8() { OrderId = "ca732613-4f4e-4042-bb8c-13bd05e97df6", OrderLineItemId ="60f0a1c0-9c14-4b43-bb06-93ef9b82c4b9", QuantityConsumed=8}),
+                new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "c8e04aee-b6e1-40b8-8621-ebbfa0e3e3ab", new ConsumeOrderTransactionContractV8() { OrderId = "eba1e20e-eed8-4e2d-9fba-0769ae2f875f", OrderLineItemId ="ad9dfadb-7621-4481-a9fb-c9a3a22a12f3", QuantityConsumed=4}),
+                //  Account 02 - Consumables included in bundles
+                //new CompletedConsumeTransaction("2 Dev 927487264", "9NCX1H100M18", "a0d73d4d-bb1a-4b33-b9b3-84aa10cab220", new ConsumeOrderTransactionContractV8() { OrderId = "92431685-572b-448a-82e1-d2ce23b189a3", OrderLineItemId ="ccbf26e3-d2b2-4077-963b-b4fc8696e1e4", QuantityConsumed=50}),
+                //new CompletedConsumeTransaction("2 Dev 927487264", "9PFL4RQTB1P6", "2b2e2d30-bbe8-4fcf-8420-025363d8dbdf", new ConsumeOrderTransactionContractV8() { OrderId = "92431685-572b-448a-82e1-d2ce23b189a3", OrderLineItemId ="ccbf26e3-d2b2-4077-963b-b4fc8696e1e4", QuantityConsumed=1}),
+                //new CompletedConsumeTransaction("2 Dev 927487264", "9PFL4RQTB1P6", "7c24fe5f-3231-4ffd-9a6c-e23dba9ee5af", new ConsumeOrderTransactionContractV8() { OrderId = "3f438557-92bf-47a0-82dd-448d4bf16cf8", OrderLineItemId ="02644953-3061-4c5f-8b0d-8be2506821b8", QuantityConsumed=1}),
+                //new CompletedConsumeTransaction("2 Dev 927487264", "9MT5TGW893HV", "276cbf9e-c846-4b0a-bbbb-f75aa580135f", new ConsumeOrderTransactionContractV8() { OrderId = "3f438557-92bf-47a0-82dd-448d4bf16cf8", OrderLineItemId ="02644953-3061-4c5f-8b0d-8be2506821b8", QuantityConsumed=10}),
+
+                };
+
+            foreach (var testTransaction in testTransactions)
+            {
+               using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
+                {
+                    await dbContext.CompletedConsumeTransactions.AddAsync(testTransaction);
+                    await dbContext.SaveChangesAsync();
+                }
+
+                var testConsumeRequest = new PendingConsumeRequest()
+                {
+                    ProductId = testTransaction.ProductId,
+                    RemoveQuantity = (uint)testTransaction.QuantityConsumed,
+                    UserId = testTransaction.UserId
+                };
+                await GrantUserConsumableValue(testConsumeRequest, cV);
+            }
+
+            return 1;
         }
     }
 }
