@@ -167,7 +167,7 @@ namespace MicrosoftStoreServicesSample.Controllers
         /// <param name="clientRequest"></param>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult<string>> RecurrenceChange([FromBody] ClientRecurrneceChangeRequest clientRequest)
+        public async Task<ActionResult<string>> RecurrenceChange([FromBody] ClientRecurrenceChangeRequest clientRequest)
         {
             //  Check that we have a properly formatted request body
             if (string.IsNullOrEmpty(clientRequest.UserPurchaseId))

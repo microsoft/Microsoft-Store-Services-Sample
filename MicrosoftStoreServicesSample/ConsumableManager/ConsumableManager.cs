@@ -224,7 +224,7 @@ namespace MicrosoftStoreServicesSample
                 UserId                = clientRequest.UserId,
                 TrackingId            = clientRequest.TransactionId,
                 IsUnmanagedConsumable = clientRequest.IsUnmanagedConsumable,
-                IncludeOrderIds       = clientRequest.IncludeOrderids
+                IncludeOrderIds       = clientRequest.IncludeOrderIds
             };
 
             if (!string.IsNullOrEmpty(clientRequest.Sbx))
