@@ -326,7 +326,7 @@ namespace MicrosoftStoreServicesSample.Controllers
 
                         //  Append the results to our collections list before possibly doing
                         //  another request to get the rest.
-                        usersCollection.Concat(collectionsResponse.Items);
+                        usersCollection = usersCollection.Concat( collectionsResponse.Items ).ToList();
 
                     } while (collectionsResponse.ContinuationToken != null);
                 }
