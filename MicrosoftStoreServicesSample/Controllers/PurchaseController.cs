@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
-using Microsoft.StoreServices.Clawback.V1;
 using MicrosoftStoreServicesSample.Models;
 using MicrosoftStoreServicesSample.PersistentDB;
 using Newtonsoft.Json;
@@ -219,7 +218,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             var recurrenceResult = new RecurrenceChangeResponse();
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
-                recurrenceResult = await storeClient.RecurrenceChangeAysnc(recurrenceRequest);
+                recurrenceResult = await storeClient.RecurrenceChangeAsync(recurrenceRequest);
             }
 
             try

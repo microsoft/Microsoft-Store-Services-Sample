@@ -7,7 +7,6 @@
 // license information.
 //-----------------------------------------------------------------------------
 
-using Azure;
 using Microsoft.CorrelationVector;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -186,16 +185,16 @@ namespace MicrosoftStoreServicesSample
                 }
             }
 
-            var beneficary = new CollectionsRequestBeneficiary
+            var beneficiary = new CollectionsRequestBeneficiary
             {
-                Identitytype = "b2b",
+                IdentityType = "b2b",
                 UserCollectionsId = userCollectionsId.Key,
                 LocalTicketReference = ""
             };
 
             var consumeRequest = new CollectionsV8ConsumeRequest
             {
-                RequestBeneficiary = beneficary,
+                RequestBeneficiary = beneficiary,
                 ProductId = pendingRequest.ProductId,
                 RemoveQuantity = pendingRequest.RemoveQuantity,
                 TrackingId = pendingRequest.TrackingId,
@@ -426,10 +425,10 @@ namespace MicrosoftStoreServicesSample
         /// </summary>
         /// <param name="userId">Id of the user to revoke from</param>
         /// <param name="productId">Id of the product to revoke</param>
-        /// <param name="ammountToRevoke">Quantity to revoke from the user's account of the product</param>
+        /// <param name="amountToRevoke">Quantity to revoke from the user's account of the product</param>
         /// <param name="cV"></param>
         /// <returns>New balance after the quantity was revoked</returns>
-        public async Task<int> RevokeUserConsumableValue(string userId, string productId, int ammountToRevoke, CorrelationVector cV)
+        public async Task<int> RevokeUserConsumableValue(string userId, string productId, int amountToRevoke, CorrelationVector cV)
         {
             //  TODO: This function is completely example for the sample purposes.  You would
             //  want to rewrite this function with your own balance and in-game currency
@@ -445,14 +444,14 @@ namespace MicrosoftStoreServicesSample
                     if (userConsumableBalance == null)
                     {
                         //  This doesn't exist yet, but there is a revoke being reported
-                        throw new InvalidOperationException($"Clawback attempted for {ammountToRevoke} of product {productId} on user {userId} but user balance was not found in the balance DB.");
+                        throw new InvalidOperationException($"Clawback attempted for {amountToRevoke} of product {productId} on user {userId} but user balance was not found in the balance DB.");
                     }
                     else
                     {
                         //  NOTE: This test method can make a user's balance go below 0.  A production
                         //  server would probably want to keep the balance at 0 and have another
                         //  balance noting the discrepancy that the user has vs what they spent.
-                        userConsumableBalance.Quantity -= ammountToRevoke;
+                        userConsumableBalance.Quantity -= amountToRevoke;
                         newBalance = userConsumableBalance.Quantity;
                     }
 

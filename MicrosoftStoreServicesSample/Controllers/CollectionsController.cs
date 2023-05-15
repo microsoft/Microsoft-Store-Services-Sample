@@ -20,7 +20,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -135,7 +134,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             //  signed into the store on the client.
             var beneficiary = new CollectionsRequestBeneficiary
             {
-                Identitytype = "b2b",
+                IdentityType = "b2b",
                 UserCollectionsId = clientRequest.UserCollectionsId,
                 LocalTicketReference = ""
             };
@@ -287,7 +286,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             //  signed into the store on the client.
             var beneficiary = new CollectionsRequestBeneficiary
             {
-                Identitytype = "b2b",
+                IdentityType = "b2b",
                 UserCollectionsId = clientRequest.UserCollectionsId,
                 LocalTicketReference = ""
             };

@@ -7,7 +7,6 @@
 // license information.
 //-----------------------------------------------------------------------------
 
-using Jose;
 using Microsoft.CorrelationVector;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -38,7 +37,7 @@ namespace MicrosoftStoreServicesSample
         }
 
         /// <summary>
-        /// Provides all the completedConsumeTransaction in our database to check any
+        /// Provides all the completedConsumeTransactions in our database to check any
         /// Clawback V2 Events against.
         /// </summary>
         /// <param name="cV"></param>
@@ -63,7 +62,7 @@ namespace MicrosoftStoreServicesSample
         /// NOTE: This is an example of the flow that works with a small sample data set.  This code
         /// and the supporting functions would need to be updated to scale better to a larger data set.
         /// </summary>
-        /// /// <param name="sandboxId">Only act on messages for this Sandbox</param>
+        /// <param name="sandboxId">Only act on messages for this Sandbox</param>
         /// <param name="cV"></param>
         /// <returns></returns>
         public async Task<string> RunClawbackV2ReconciliationAsync(string sandboxId, CorrelationVector cV)
@@ -77,14 +76,12 @@ namespace MicrosoftStoreServicesSample
             var logMessage = $"Starting Clawback V2 Reconciliation for Sandbox {sandboxId}";
             _logger.ServiceInfo(cV.Value, logMessage);
             response.AppendFormat("INFO: {0}\n", logMessage);
-            int numProccessed = 0;
+            int numProcessed = 0;
             int numDeleted = 0;
             int numSkipped = 0;
 
-
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
-
                 var queueMessages = new List<ClawbackV2Message>();
                 do
                 {
@@ -122,7 +119,6 @@ namespace MicrosoftStoreServicesSample
                             //             should be in our CompletedConsumeTransaction database
                             try
                             {
-
                                 if (currentMessage.ClawbackEvent.OrderInfo.RefundState == RefundStates.Refunded)
                                 {
                                     logMessage = $"Clawback Event {currentMessage.ClawbackEvent.Id}'s state is {RefundStates.Refunded}.  No further action needed.";
@@ -210,7 +206,7 @@ namespace MicrosoftStoreServicesSample
                                 _logger.ServiceWarning(cV.Value, logMessage, ex);
                                 response.AppendFormat("Warning: {0}\n", logMessage);
                             }
-                            numProccessed++;
+                            numProcessed++;
                         }
                         else
                         {
@@ -220,7 +216,7 @@ namespace MicrosoftStoreServicesSample
                 } while (queueMessages.Count > 0);
             }
 
-            logMessage = $"ClawbackV2 event reconciliation task finished: {numProccessed} processed, {numDeleted} deleted, {numSkipped} skipped";
+            logMessage = $"ClawbackV2 event reconciliation task finished: {numProcessed} processed, {numDeleted} deleted, {numSkipped} skipped";
             _logger.ServiceInfo(cV.Value, logMessage);
             response.AppendFormat("INFO: {0}\n", logMessage);
 
