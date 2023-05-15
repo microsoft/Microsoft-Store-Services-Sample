@@ -179,11 +179,14 @@ namespace MicrosoftStoreServicesSample
                 }
             }
 
-            //  Todo: For testing you can use this function to pre-populate the database with values
+            //  Todo: For testing you can use this block of code to pre-populate the database with values
             //  to re-run tests when using Clawback and not deleting the messages from the queue.
-            var consumeManager = new ConsumableManager(Configuration, storeServiceClientFactory, _logger);
-            var testPopulateTask = consumeManager.PopulateTestValuesInDatabases(_cV);
-            testPopulateTask.Wait();
+            //  If you are going to be using this and debugging, make sure to comment out the block of
+            //  code for Step 6 in RunClawbackV2ReconciliationAsync so the events are not removed from
+            //  the queue as you test and debug.
+            //var consumeManager = new ConsumableManager(Configuration, storeServiceClientFactory, _logger);
+            //var testPopulateTask = consumeManager.PopulateTestValuesInDatabases(_cV);
+            //testPopulateTask.Wait();
 
             _logger.StartupInfo(_cV.Value, "Server initialized and ready for requests");
         }

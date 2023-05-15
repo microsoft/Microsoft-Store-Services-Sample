@@ -111,10 +111,10 @@ namespace MicrosoftStoreServicesSample.Controllers
             try
             {
                 response.Append(
-                    "| ProductId    | Qty | State     | LineItemId                           | Refunded Date                 |\n" +
-                    "|-------------------------------------------------------------------------------------------------------|\n");
+                    "| ProductId    | Qty | State     | OrderID                              | LineItemId                           | Refunded Date                 |\n" +
+                    "|----------------------------------------------------------------------------------------------------------------------------------------------|\n");
 
-                foreach (var item in clawbackResults.Items)
+                foreach (var item in clawbackItems)
                 {
                     foreach (var lineItem in item.OrderLineItems)
                     {
@@ -125,10 +125,11 @@ namespace MicrosoftStoreServicesSample.Controllers
                             refundedDate = item.OrderRefundedDate.ToString();
                         }
 
-                        response.AppendFormat("| {0,-12} | {1,-3} | {2,-9} | {3,-36} | {4,-29} |\n",
+                        response.AppendFormat("| {0,-12} | {1,-3} | {2,-9} | {3,-36} | {4,-36} | {5,-29} |\n",
                                               lineItem.ProductId,
                                               lineItem.Quantity,
                                               lineItem.LineItemState,
+                                              item.OrderId,
                                               lineItem.LineItemId,
                                               item.OrderRefundedDate.ToString());
                     }
@@ -147,17 +148,42 @@ namespace MicrosoftStoreServicesSample.Controllers
         /// Returns any refund events found in the Clawback v2 service
         /// </summary>
         /// <returns></returns>
-        [HttpGet]
-        public async Task<ActionResult<string>> ClawbackV2Query()
+        [HttpPost]
+        public async Task<ActionResult<string>> ClawbackV2Query([FromBody] string sandboxFilter)
         {
+            InitializeLoggingCv();
             string returnVal = "";
+
+            //  Check that we have a properly formatted request body
+            if (string.IsNullOrEmpty(sandboxFilter))
+            {
+                sandboxFilter = "";  // If no sandbox filter is provided, we will just process them all
+            }
 
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
-                var queryResult = await storeClient.ClawbackV2QueryEventsAsync(32);
-                returnVal = FormatResponseForClawbackV2Messages(queryResult);
-            }
+                //  GET message limit is 30 seconds, so if we are still processing
+                //  queue messages after 30 seconds we are probably re-processing
+                //  messages we have already seen as this function does not delete
+                //  any messages from the queue.
+                var timeoutLimit = DateTime.Now.AddSeconds(30); 
 
+                var clawbackMessages = new List<ClawbackV2Message>();
+                do
+                {
+                    returnVal += FormatResponseForClawbackV2Messages(clawbackMessages);
+                    clawbackMessages = await storeClient.ClawbackV2QueryEventsAsync(32);
+                }
+                while (clawbackMessages.Count > 0 && timeoutLimit > DateTime.Now); 
+
+                if (timeoutLimit <= DateTime.Now)
+                {
+                    returnVal += "\n WARNING: There are more messages on the queue than we were able to see with only GET requests.  To see all messages some must be deleted from the queue.\n";
+
+                    _logger.ServiceWarning(_cV.Value, returnVal, null);
+                }
+            }
+            FinalizeLoggingCv();
             return returnVal;
         }
 
@@ -217,7 +243,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             var response = new StringBuilder("Running Clawback Reconciliation Task...  \n");
 
             var clawManager = new ClawbackV2Manager(_config, _storeServicesClientFactory, _logger);
-            response.Append(await clawManager.RunClawbackV2ReconciliationAsync("XDKS.1", _cV));
+            response.Append(await clawManager.RunClawbackV2ReconciliationAsync("RETAIL", _cV));
 
             FinalizeLoggingCv();
             return new OkObjectResult(response.ToString());
@@ -357,15 +383,22 @@ namespace MicrosoftStoreServicesSample.Controllers
         /// <returns></returns>
         private static string FormatResponseForClawbackV2Messages(List<ClawbackV2Message> clawbackMessages)
         {
-            var response = new StringBuilder("\n");
-            response.Append(
-                    "| ProductId    | Sandbox    | RefundState | Source            | OrderId                              | LineItemId                           | Purchase Date                 | Refund Initiated Date         | Message Id                           | Clawback Event Id                    |\r\n" +
-                    "|--------------|------------|-------------|-------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|\r\n");
+            var response = new StringBuilder("");
+            if (clawbackMessages.Count == 0)
+            {
+                //  This is the end of the list so add this at the top
+                response.Append(
+                        "\n" +
+                        "| ProductId    | Sandbox    | RefundState | Source               | OrderId                              | LineItemId                           | Purchase Date                 | Refund Initiated Date         | Inserted On                   | Message Id                           | Clawback Event Id                    |\r\n"
+                        // +                                                                                                                                                                                                                                                                                                                                    
+                        //"|--------------|------------|-------------|----------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|\r\n"
+                        );
+            }
 
 
             foreach (var clawbackMessage in clawbackMessages)
             {
-                response.AppendFormat("| {0,-12} | {1,-10} | {2,-11} | {3,-17} | {4,-36} | {5,-36} | {6,-29} | {7,-29} | {8,-36} | {9,-36} |\n",
+                response.AppendFormat("| {0,-12} | {1,-10} | {2,-11} | {3,-20} | {4,-36} | {5,-36} | {6,-29} | {7,-29} | {8,-29} | {9,-36} | {10,-36} |\n",
                                       clawbackMessage.ClawbackEvent.OrderInfo.ProductId,
                                       clawbackMessage.ClawbackEvent.OrderInfo.SandboxId,
                                       clawbackMessage.ClawbackEvent.OrderInfo.RefundState,
@@ -374,15 +407,14 @@ namespace MicrosoftStoreServicesSample.Controllers
                                       clawbackMessage.ClawbackEvent.OrderInfo.LineItemId,
                                       clawbackMessage.ClawbackEvent.OrderInfo.PurchasedDate,
                                       clawbackMessage.ClawbackEvent.OrderInfo.RefundInitiatedDate,
+                                      clawbackMessage.InsertedOn,
                                       clawbackMessage.MessageId,
                                       clawbackMessage.ClawbackEvent.Id
                                       );
 
-                response.AppendFormat(
-                    "|--------------|------------|-------------|-------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|\n");
+                //response.AppendFormat(
+                //    "|--------------|------------|-------------|----------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|\n");
             }
-
-            response.AppendFormat("\n");
 
             return response.ToString();
         }
