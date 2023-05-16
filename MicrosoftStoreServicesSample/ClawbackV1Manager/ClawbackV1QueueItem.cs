@@ -17,7 +17,7 @@ namespace MicrosoftStoreServicesSample
     /// User Purchase Id we will use for our Clawback checks and reconciliation
     /// to check for refunds on the account for up to 90 days.
     /// </summary>
-    public class ClawbackQueueItem
+    public class ClawbackV1QueueItem
     {
         /// <summary>
         /// Unique key for lookup in the queue based on the account type
@@ -42,14 +42,14 @@ namespace MicrosoftStoreServicesSample
         /// </summary>
         public DateTimeOffset ConsumeDate { get; set; }
         
-        public ClawbackQueueItem() { }
+        public ClawbackV1QueueItem() { }
         
         /// <summary>
         /// Creates an item to add to the Clawback validation queue 
         /// from a completed PendingConsumeRequest object.
         /// </summary>
         /// <param name="request">Completed consume request info</param>
-        public ClawbackQueueItem(PendingConsumeRequest request, bool isSinglePurchasingAccount = true)
+        public ClawbackV1QueueItem(PendingConsumeRequest request, bool isSinglePurchasingAccount = true)
         {
             ConsumeDate    = DateTimeOffset.UtcNow;
             UserPurchaseId = request.UserPurchaseId;

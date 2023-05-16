@@ -28,7 +28,7 @@ namespace Microsoft.StoreServices
         public string TransactionId { get; set; }
         public string UserId { get; set; }
         public bool IsUnmanagedConsumable { get; set; } = false;
-        public bool IncludeOrderids { get; set; } = false;
+        public bool IncludeOrderIds { get; set; } = false;
         public string Sbx { get; set; }
     }
 }

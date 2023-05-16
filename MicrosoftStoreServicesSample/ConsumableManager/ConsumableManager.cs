@@ -145,7 +145,7 @@ namespace MicrosoftStoreServicesSample
             //  for this user and check if a refund has been issued later on.
             if (!string.IsNullOrEmpty(request.UserPurchaseId))
             {
-                var clawManager = new ClawbackManager(_config,
+                var clawManager = new ClawbackV1Manager(_config,
                                                       _storeServicesClientFactory,
                                                       _logger);
 
@@ -185,16 +185,16 @@ namespace MicrosoftStoreServicesSample
                 }
             }
 
-            var beneficary = new CollectionsRequestBeneficiary
+            var beneficiary = new CollectionsRequestBeneficiary
             {
-                Identitytype = "b2b",
+                IdentityType = "b2b",
                 UserCollectionsId = userCollectionsId.Key,
                 LocalTicketReference = ""
             };
 
             var consumeRequest = new CollectionsV8ConsumeRequest
             {
-                RequestBeneficiary = beneficary,
+                RequestBeneficiary = beneficiary,
                 ProductId = pendingRequest.ProductId,
                 RemoveQuantity = pendingRequest.RemoveQuantity,
                 TrackingId = pendingRequest.TrackingId,
@@ -224,7 +224,7 @@ namespace MicrosoftStoreServicesSample
                 UserId                = clientRequest.UserId,
                 TrackingId            = clientRequest.TransactionId,
                 IsUnmanagedConsumable = clientRequest.IsUnmanagedConsumable,
-                IncludeOrderIds       = clientRequest.IncludeOrderids
+                IncludeOrderIds       = clientRequest.IncludeOrderIds
             };
 
             if (!string.IsNullOrEmpty(clientRequest.Sbx))
@@ -425,10 +425,10 @@ namespace MicrosoftStoreServicesSample
         /// </summary>
         /// <param name="userId">Id of the user to revoke from</param>
         /// <param name="productId">Id of the product to revoke</param>
-        /// <param name="ammountToRevoke">Quantity to revoke from the user's account of the product</param>
+        /// <param name="amountToRevoke">Quantity to revoke from the user's account of the product</param>
         /// <param name="cV"></param>
         /// <returns>New balance after the quantity was revoked</returns>
-        public async Task<int> RevokeUserConsumableValue(string userId, string productId, int ammountToRevoke, CorrelationVector cV)
+        public async Task<int> RevokeUserConsumableValue(string userId, string productId, int amountToRevoke, CorrelationVector cV)
         {
             //  TODO: This function is completely example for the sample purposes.  You would
             //  want to rewrite this function with your own balance and in-game currency
@@ -444,14 +444,14 @@ namespace MicrosoftStoreServicesSample
                     if (userConsumableBalance == null)
                     {
                         //  This doesn't exist yet, but there is a revoke being reported
-                        throw new InvalidOperationException($"Clawback attempted for {ammountToRevoke} of product {productId} on user {userId} but user balance was not found in the balance DB.");
+                        throw new InvalidOperationException($"Clawback attempted for {amountToRevoke} of product {productId} on user {userId} but user balance was not found in the balance DB.");
                     }
                     else
                     {
                         //  NOTE: This test method can make a user's balance go below 0.  A production
                         //  server would probably want to keep the balance at 0 and have another
                         //  balance noting the discrepancy that the user has vs what they spent.
-                        userConsumableBalance.Quantity -= ammountToRevoke;
+                        userConsumableBalance.Quantity -= amountToRevoke;
                         newBalance = userConsumableBalance.Quantity;
                     }
 
@@ -544,6 +544,50 @@ namespace MicrosoftStoreServicesSample
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Helper function for testing / re-populating values into your ConsumedTransaction db to
+        /// facilitate easier testing of scenarios.  Just be sure not to delete the clawback event
+        /// from the queue and using this you can do multiple test runs and debugging.
+        /// </summary>
+        /// <param name="cV"></param>
+        /// <returns></returns>
+        public async Task<int> PopulateTestValuesInDatabases(CorrelationVector cV)
+        {
+            var testTransactions = new List<CompletedConsumeTransaction>
+            {
+                //  Example test value data - Multiple transactions and purchases
+                //new CompletedConsumeTransaction("2 Dev 908710919", "9N0297GK108W", "fb120de0-3ef4-4ba3-a659-465d018c0243", new ConsumeOrderTransactionContractV8() { OrderId = "70fd35f2-7e4a-4f27-8df3-a673a5a4d9d9", OrderLineItemId ="230e9063-bffe-411a-8aa1-6f99ca091452", QuantityConsumed=1}),
+                //new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "334b2fb1-4b4d-474d-ad7d-2f886b3eaecd", new ConsumeOrderTransactionContractV8() { OrderId = "a19d5e0d-f738-46ac-b56c-8d32367d163b", OrderLineItemId ="54b29900-8ea5-4c2d-9fb8-312e4b4d8d0c", QuantityConsumed=10}),
+                //new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "0cd4dcc4-4899-48a6-b72f-0308f48fbdb0", new ConsumeOrderTransactionContractV8() { OrderId = "f8368c62-966d-4036-a795-5a4b65c79468", OrderLineItemId ="715d3f99-24f5-4e15-adc3-0393bb53ff46", QuantityConsumed=10}),
+                //new CompletedConsumeTransaction("2 Dev 908710919", "9PFL4RQTB1P6", "8295b0ed-314f-4b3b-a8d0-a24b01e0e1cf", new ConsumeOrderTransactionContractV8() { OrderId = "8d25bd33-9856-453a-b494-b390a5cde27c", OrderLineItemId ="3371ce65-79f7-4c81-9910-f718eaba3efb", QuantityConsumed=1}),
+                //new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "d1985ed5-e1a3-4a4a-ab22-2a1e936dfda3", new ConsumeOrderTransactionContractV8() { OrderId = "97c6d89d-6f65-45a8-92e7-d4ceecc09f6e", OrderLineItemId ="9abc1045-b08c-4f12-a7cb-1a5118455aca", QuantityConsumed=2}),
+                //new CompletedConsumeTransaction("2 Dev 908710919", "9MT5TGW893HV", "a237d06a-0e1d-480a-bd91-a710f8305bf5", new ConsumeOrderTransactionContractV8() { OrderId = "97c6d89d-6f65-45a8-92e7-d4ceecc09f6e", OrderLineItemId ="9abc1045-b08c-4f12-a7cb-1a5118455aca", QuantityConsumed=8}),
+                //new CompletedConsumeTransaction("2 Dev 927487264", "9NCX1H100M18", "a0d73d4d-bb1a-4b33-b9b3-84aa10cab220", new ConsumeOrderTransactionContractV8() { OrderId = "92431685-572b-448a-82e1-d2ce23b189a3", OrderLineItemId ="ccbf26e3-d2b2-4077-963b-b4fc8696e1e4", QuantityConsumed=50}),
+                //new CompletedConsumeTransaction("2 Dev 927487264", "9PFL4RQTB1P6", "2b2e2d30-bbe8-4fcf-8420-025363d8dbdf", new ConsumeOrderTransactionContractV8() { OrderId = "92431685-572b-448a-82e1-d2ce23b189a3", OrderLineItemId ="ccbf26e3-d2b2-4077-963b-b4fc8696e1e4", QuantityConsumed=1}),
+                //new CompletedConsumeTransaction("2 Dev 927487264", "9PFL4RQTB1P6", "7c24fe5f-3231-4ffd-9a6c-e23dba9ee5af", new ConsumeOrderTransactionContractV8() { OrderId = "3f438557-92bf-47a0-82dd-448d4bf16cf8", OrderLineItemId ="02644953-3061-4c5f-8b0d-8be2506821b8", QuantityConsumed=1}),
+                //new CompletedConsumeTransaction("2 Dev 927487264", "9MT5TGW893HV", "276cbf9e-c846-4b0a-bbbb-f75aa580135f", new ConsumeOrderTransactionContractV8() { OrderId = "3f438557-92bf-47a0-82dd-448d4bf16cf8", OrderLineItemId ="02644953-3061-4c5f-8b0d-8be2506821b8", QuantityConsumed=10}),
+            };
+
+            foreach (var testTransaction in testTransactions)
+            {
+               using (var dbContext = ServerDBController.CreateDbContext(_config, cV, _logger))
+                {
+                    await dbContext.CompletedConsumeTransactions.AddAsync(testTransaction);
+                    await dbContext.SaveChangesAsync();
+                }
+
+                var testConsumeRequest = new PendingConsumeRequest()
+                {
+                    ProductId = testTransaction.ProductId,
+                    RemoveQuantity = (uint)testTransaction.QuantityConsumed,
+                    UserId = testTransaction.UserId
+                };
+                await GrantUserConsumableValue(testConsumeRequest, cV);
+            }
+
+            return 1;
         }
     }
 }

@@ -20,7 +20,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -135,7 +134,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             //  signed into the store on the client.
             var beneficiary = new CollectionsRequestBeneficiary
             {
-                Identitytype = "b2b",
+                IdentityType = "b2b",
                 UserCollectionsId = clientRequest.UserCollectionsId,
                 LocalTicketReference = ""
             };
@@ -189,7 +188,10 @@ namespace MicrosoftStoreServicesSample.Controllers
 
                         //  Append the results to our collections list before possibly doing
                         //  another request to get the rest.
-                        usersCollection.Concat(collectionsResponse.Items);
+                        foreach (var item in collectionsResponse.Items)
+                        {
+                            usersCollection.Add(item);
+                        }
 
                     } while (collectionsResponse.ContinuationToken != null);
                 }
@@ -197,7 +199,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                 //  TODO: Operate on the results with your custom logic
                 //        For this sample we just iterate through the results, format them to
                 //        a readable string and send it back to the client as proof of flow.
-                FormatCollectionsResponse(usersCollection);
+                response.Append(FormatCollectionsResponse(usersCollection));
 
                 //  If this is from the Client sample, include the JSON so that it can display the items in the UI
                 //  properly
@@ -284,7 +286,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             //  signed into the store on the client.
             var beneficiary = new CollectionsRequestBeneficiary
             {
-                Identitytype = "b2b",
+                IdentityType = "b2b",
                 UserCollectionsId = clientRequest.UserCollectionsId,
                 LocalTicketReference = ""
             };

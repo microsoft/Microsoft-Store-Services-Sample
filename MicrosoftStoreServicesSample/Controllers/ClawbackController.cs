@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------------
-// PurchaseController.cs
+// ClawbackController.cs
 //
 // Xbox Advanced Technology Group (ATG)
 // Copyright (C) Microsoft Corporation. All rights reserved.
@@ -11,9 +11,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.StoreServices;
-using MicrosoftStoreServicesSample.Models;
+using Microsoft.StoreServices.Clawback.V1;
+using Microsoft.StoreServices.Clawback.V2;
 using MicrosoftStoreServicesSample.PersistentDB;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,57 +24,18 @@ namespace MicrosoftStoreServicesSample.Controllers
 {
     /// <summary>
     /// Example endpoints to demonstrate the abilities of using the
-    /// Purchase endpoints to manage subscriptions (recurrence) and
-    /// to monitor and manage refunds to the customer (clawback).
+    /// Clawback V2 ClawbackEvent service to query refunded products
     /// </summary>
     [ApiController]
     [Route("[controller]/[action]")]
-    public class PurchaseController : ServiceControllerBase
+    public class ClawbackController : ServiceControllerBase
     {
         private readonly IConfiguration _config;
-        public PurchaseController(IConfiguration config,
+        public ClawbackController(IConfiguration config,
                                   IStoreServicesClientFactory storeServicesClientFactory,
                                   ILogger<CollectionsController> logger) : base(storeServicesClientFactory, logger)
         {
             _config = config;
-        }
-
-        /// <summary>
-        /// TODO: You will want to likely incorporate this flow into your authorization
-        /// handshake with the client ranter than having a dedicated endpoint to hand
-        /// these out.
-        /// 
-        /// Sends the access tokens to the client that will be needed to create the
-        /// required UserCollectionsId and UserPurchaseId for functional calls
-        /// made to the store services.
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet]
-        public async Task<ActionResult<string>> AccessTokens()
-        {
-            InitializeLoggingCv();
-            var response = new ClientAccessTokensResponse
-            {
-                //  TODO: Replace this code obtaining and noting the UserId with your own
-                //        authentication ID system for each user.
-                //  make up a unique ID for this client
-                UserID = GetUserId()
-            };
-
-            try
-            {
-                response.AccessTokens = await GetAccessTokens();
-            }
-            catch (Exception e)
-            {
-                return e.Message;
-            }
-
-            //  Send these access tokens to the client for them to then
-            //  get the UserCollectionsId and UserPurchaseId and return
-            //  them to us
-            FinalizeLoggingCv();
-            return new OkObjectResult(JsonConvert.SerializeObject(response));
         }
 
         ////////////////////////////////////////////////////////////////////
@@ -84,77 +45,99 @@ namespace MicrosoftStoreServicesSample.Controllers
         //        build your service from.  These are only test endpoints to
         //        help demonstrate how to use the Purchase service.  These
         //        generally will be used and controlled only from your own
-        //        service for reconciling subscriptions or refunds.
+        //        service for reconciling refunds.
         ////////////////////////////////////////////////////////////////////
 
         /// <summary>
-        /// Returns any subscriptions for the UserPurchaseId provided
+        /// Returns any refunds found by the Clawback service for the UserPurchaseId provided
         /// </summary>
         /// <param name="clientRequest"></param>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult<string>> RecurrenceQuery([FromBody] ClientPurchaseId clientRequest)
+        public async Task<ActionResult<string>> ClawbackV1Query([FromBody] ClientPurchaseId clientRequest)
         {
             //  Check that we have a properly formatted request body
             if (string.IsNullOrEmpty(clientRequest.UserPurchaseId))
             {
-                return BadRequest("Request body missing PurchaseId. ex: {\"PurchaseId\": \"...\"}");
-            }
-
-            bool includeJson = false;
-            if(Request.Headers.ContainsKey("User-Agent"))
-            {
-                string userAgent = Request.Headers["User-Agent"];
-                if (!string.IsNullOrEmpty(userAgent) && userAgent.Equals("Microsoft.StoreServicesClientSample"))
-                {
-                    //  This call is from the Client sample that is tied to this sample, so include the added JSON
-                    //  in the response body so that it can use those values to update the UI.
-                    includeJson = true;
-                }
+                return BadRequest("Request body missing PurchaseId. ex: {\"UserPurchaseId\": \"...\"}");
             }
 
             var response = new StringBuilder("");
 
-            var recurrenceRequest = new RecurrenceQueryRequest
+            var clawbackRequest = new ClawbackV1QueryRequest
             {
                 UserPurchaseId = clientRequest.UserPurchaseId
             };
 
-            if (!string.IsNullOrEmpty(clientRequest.Sbx))
+            if (clientRequest.LineItemStateFilter != null)
             {
-                recurrenceRequest.SandboxId = clientRequest.Sbx;
+                clawbackRequest.LineItemStateFilter = clientRequest.LineItemStateFilter;
+            }
+            else
+            {
+                //  Revoked and Refunded are added by default when the clawbackV1QueryRequest is created
+                //  since the caller passed in null, just give them all states which would mean just
+                //  adding Purchased to the default values.
+                clawbackRequest.LineItemStateFilter.Add(LineItemStates.Purchased);
             }
 
-            var recurrenceResults = new RecurrenceQueryResponse();
+            if (!string.IsNullOrEmpty(clientRequest.Sbx))
+            {
+                clawbackRequest.SandboxId = clientRequest.Sbx;
+            }
+
+            var clawbackResults = new ClawbackV1QueryResponse();
+            var clawbackItems = new List<ClawbackV1Item>();
+
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
-                recurrenceResults = await storeClient.RecurrenceQueryAsync(recurrenceRequest);
+                do
+                {
+                    clawbackResults = await storeClient.ClawbackV1QueryAsync(clawbackRequest);
+
+                    //  If there was a continuation token add it to the next cycle.
+                    clawbackRequest.ContinuationToken = clawbackResults.ContinuationToken;
+
+                    //  Append the results to our collections list before possibly doing
+                    //  another request to get the rest.
+                    foreach (var item in clawbackResults.Items)
+                    {
+                        clawbackItems.Add(item);
+                    }
+
+                } while (!string.IsNullOrEmpty(clawbackResults.ContinuationToken));
             }
 
             try
             {
                 response.Append(
-                    "| ProductId    | Renew | State     | Start Date                    | Expire Date (With Grace)      |\n" +
-                    "|--------------------------------------------------------------------------------------------------|\n");
+                    "| ProductId    | Qty | State     | OrderID                              | LineItemId                           | Refunded Date                 |\n" +
+                    "|----------------------------------------------------------------------------------------------------------------------------------------------|\n");
 
-                foreach (var item in recurrenceResults.Items)
+                foreach (var item in clawbackItems)
                 {
-                    response.AppendFormat("| {0,-12} | {1,-5} | {2,-9} | {3,-29} | {4,-29} |\n",
-                                            item.ProductId,
-                                            item.AutoRenew,
-                                            item.RecurrenceState,
-                                            item.StartTime.ToString(),
-                                            item.ExpirationTimeWithGrace);
+                    foreach (var lineItem in item.OrderLineItems)
+                    {
+                        //  If the item is in the Purchase state, then we don't show the Refund date
+                        string refundedDate = "";
+                        if (lineItem.LineItemState != LineItemStates.Purchased)
+                        {
+                            refundedDate = item.OrderRefundedDate.ToString();
+                        }
+
+                        response.AppendFormat("| {0,-12} | {1,-3} | {2,-9} | {3,-36} | {4,-36} | {5,-29} |\n",
+                                              lineItem.ProductId,
+                                              lineItem.Quantity,
+                                              lineItem.LineItemState,
+                                              item.OrderId,
+                                              lineItem.LineItemId,
+                                              item.OrderRefundedDate.ToString());
+                    }
                 }
             }
             catch (Exception e)
             {
                 response.Append(e.Message);
-            }
-            if(includeJson)
-            {
-                response.Append("RawResponse: ");
-                response.Append(JsonConvert.SerializeObject(recurrenceResults));
             }
 
             var finalResponse = response.ToString();
@@ -162,94 +145,64 @@ namespace MicrosoftStoreServicesSample.Controllers
         }
 
         /// <summary>
-        /// Returns any subscriptions for the UserPurchaseId provided
+        /// Returns any refund events found in the Clawback v2 service
         /// </summary>
-        /// <param name="clientRequest"></param>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult<string>> RecurrenceChange([FromBody] ClientRecurrenceChangeRequest clientRequest)
+        public async Task<ActionResult<string>> ClawbackV2Query([FromBody] string sandboxFilter)
         {
+            InitializeLoggingCv();
+            string returnVal = "";
+
             //  Check that we have a properly formatted request body
-            if (string.IsNullOrEmpty(clientRequest.UserPurchaseId))
+            if (string.IsNullOrEmpty(sandboxFilter))
             {
-                return BadRequest("Request body missing PurchaseId. ex: {\"PurchaseId\": \"...\"}");
-            }
-            else if (string.IsNullOrEmpty(clientRequest.RecurrenceId))
-            {
-                return BadRequest("Request body missing RecurrenceId. ex: {\"RecurrenceId\": \"...\"}");
-            }
-            else if (string.IsNullOrEmpty(clientRequest.ChangeType))
-            {
-                return BadRequest("Request body missing RecurrenceId. ex: {\"ChangeType\": \"...\"}, Cancel, Extend, Refund, ToggleAutoRenew");
+                sandboxFilter = "";  // If no sandbox filter is provided, we will just process them all
             }
 
-
-            bool includeJson = false;
-            if (Request.Headers.ContainsKey("User-Agent"))
-            {
-                string userAgent = Request.Headers["User-Agent"];
-                if (!string.IsNullOrEmpty(userAgent) && userAgent.Equals("Microsoft.StoreServicesClientSample"))
-                {
-                    //  This call is from the Client sample that is tied to this sample, so include the added JSON
-                    //  in the response body so that it can use those values to update the UI.
-                    includeJson = true;
-                }
-            }
-
-            var response = new StringBuilder("");
-
-            var recurrenceRequest = new RecurrenceChangeRequest
-            {
-                UserPurchaseId = clientRequest.UserPurchaseId,
-                ChangeType = clientRequest.ChangeType,
-                RecurrenceId = clientRequest.RecurrenceId
-            };
-
-            if (!string.IsNullOrEmpty(clientRequest.Sbx))
-            {
-                recurrenceRequest.SandboxId = clientRequest.Sbx;
-            }
-
-            if (clientRequest.ChangeType == RecurrenceChangeType.Extend.ToString())
-            {
-                recurrenceRequest.ExtensionTimeInDays = clientRequest.ExtensionTime;
-            }
-
-            var recurrenceResult = new RecurrenceChangeResponse();
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
-                recurrenceResult = await storeClient.RecurrenceChangeAsync(recurrenceRequest);
-            }
+                //  GET message limit is 30 seconds, so if we are still processing
+                //  queue messages after 30 seconds we are probably re-processing
+                //  messages we have already seen as this function does not delete
+                //  any messages from the queue.
+                var timeoutLimit = DateTime.Now.AddSeconds(30); 
 
-            try
+                var clawbackMessages = new List<ClawbackV2Message>();
+                do
+                {
+                    returnVal += FormatResponseForClawbackV2Messages(clawbackMessages);
+                    clawbackMessages = await storeClient.ClawbackV2QueryEventsAsync(32);
+                }
+                while (clawbackMessages.Count > 0 && timeoutLimit > DateTime.Now); 
+
+                if (timeoutLimit <= DateTime.Now)
+                {
+                    returnVal += "\n WARNING: There are more messages on the queue than we were able to see with only GET requests.  To see all messages some must be deleted from the queue.\n";
+
+                    _logger.ServiceWarning(_cV.Value, returnVal, null);
+                }
+            }
+            FinalizeLoggingCv();
+            return returnVal;
+        }
+
+        /// <summary>
+        /// Returns any refunds found by the Clawback service for the UserPurchaseId provided
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public async Task<ActionResult<string>> ClawbackV2Peek()
+        {
+            string returnVal = "";
+
+            using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
-                response.Append(
-                    "| ProductId    | Renew | State     | Start Date                    | Expire Date (With Grace)      |\n" +
-                    "|--------------------------------------------------------------------------------------------------|\n");
-
-
-                response.AppendFormat("| {0,-12} | {1,-5} | {2,-9} | {3,-29} | {4,-29} |\n",
-                                      recurrenceResult.ProductId,
-                                      recurrenceResult.AutoRenew,
-                                      recurrenceResult.RecurrenceState,
-                                      recurrenceResult.StartTime.ToString(),
-                                      recurrenceResult.ExpirationTimeWithGrace);
-                
-
-            }
-            catch (Exception e)
-            {
-                response.Append(e.Message);
+                var peekResult = await storeClient.ClawbackV2PeekEventsAsync(32);
+                returnVal = FormatResponseForClawbackV2Messages(peekResult);
             }
 
-            if (includeJson)
-            {
-                response.Append("RawResponse: ");
-                response.Append(JsonConvert.SerializeObject(recurrenceResult));
-            }
-
-            var finalResponse = response.ToString();
-            return new OkObjectResult(finalResponse);
+            return returnVal;
         }
 
         /// <summary>
@@ -275,6 +228,28 @@ namespace MicrosoftStoreServicesSample.Controllers
         }
 
         /// <summary>
+        /// TODO: This endpoint would not be an endpoint in your deployed service.  It would be
+        /// function that you would run once a day and be controlled without a client request.
+        /// 
+        /// Runs the task to go through and reconcile all of the items in the Clawback Queue to find
+        /// if there were any refunds issued for items that we have already consumed and therefore
+        /// need to revoke / remove items from the user's account balance on our server
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public async Task<ActionResult<string>> RunClawbackV2Validation()
+        {
+            InitializeLoggingCv();
+            var response = new StringBuilder("Running Clawback Reconciliation Task...  \n");
+
+            var clawManager = new ClawbackV2Manager(_config, _storeServicesClientFactory, _logger);
+            response.Append(await clawManager.RunClawbackV2ReconciliationAsync("RETAIL", _cV));
+
+            FinalizeLoggingCv();
+            return new OkObjectResult(response.ToString());
+        }
+
+        /// <summary>
         /// NOTE: This is a test API only and should not be part of a production deployment
         /// Returns to the items in the Clawback queue which represent consumes that we are
         /// acted on and the UserId was granted value in their game account for the consume.
@@ -282,7 +257,7 @@ namespace MicrosoftStoreServicesSample.Controllers
         /// we can remove those items from the user's balance within our own databases.
         /// </summary>
         /// <returns></returns>
-        
+
         [HttpGet]
         public ActionResult<string> ViewClawbackQueue()
         {
@@ -366,7 +341,6 @@ namespace MicrosoftStoreServicesSample.Controllers
             return new OkObjectResult(response.ToString());
         }
 
-
         /// <summary>
         /// Utility function to help format the response to send back down to the client for the 
         /// test endpoints
@@ -397,6 +371,50 @@ namespace MicrosoftStoreServicesSample.Controllers
             }
 
             response.AppendFormat("\n");
+
+            return response.ToString();
+        }
+
+        /// <summary>
+        /// Utility function to help format the response to send back down to the client for the 
+        /// test endpoints
+        /// </summary>
+        /// <param name="actionItems"></param>
+        /// <returns></returns>
+        private static string FormatResponseForClawbackV2Messages(List<ClawbackV2Message> clawbackMessages)
+        {
+            var response = new StringBuilder("");
+            if (clawbackMessages.Count == 0)
+            {
+                //  This is the end of the list so add this at the top
+                response.Append(
+                        "\n" +
+                        "| ProductId    | Sandbox    | RefundState | Source               | OrderId                              | LineItemId                           | Purchase Date                 | Refund Initiated Date         | Inserted On                   | Message Id                           | Clawback Event Id                    |\r\n"
+                        // +                                                                                                                                                                                                                                                                                                                                    
+                        //"|--------------|------------|-------------|----------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|\r\n"
+                        );
+            }
+
+
+            foreach (var clawbackMessage in clawbackMessages)
+            {
+                response.AppendFormat("| {0,-12} | {1,-10} | {2,-11} | {3,-20} | {4,-36} | {5,-36} | {6,-29} | {7,-29} | {8,-29} | {9,-36} | {10,-36} |\n",
+                                      clawbackMessage.ClawbackEvent.OrderInfo.ProductId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.SandboxId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.RefundState,
+                                      clawbackMessage.ClawbackEvent.Source,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.OrderId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.LineItemId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.PurchasedDate,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.RefundInitiatedDate,
+                                      clawbackMessage.InsertedOn,
+                                      clawbackMessage.MessageId,
+                                      clawbackMessage.ClawbackEvent.Id
+                                      );
+
+                //response.AppendFormat(
+                //    "|--------------|------------|-------------|----------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|\n");
+            }
 
             return response.ToString();
         }

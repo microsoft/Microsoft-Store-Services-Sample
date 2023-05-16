@@ -7,6 +7,8 @@
 // license information.
 //-----------------------------------------------------------------------------
 
+// Ignore Spelling: env
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.CorrelationVector;
@@ -22,6 +24,7 @@ using System.Net.Http;
 
 namespace MicrosoftStoreServicesSample
 {
+
     public class Startup
     {
         private ILogger _logger;
@@ -100,7 +103,7 @@ namespace MicrosoftStoreServicesSample
             //  Initializing Access Tokens and StoreServicesClientFactory
             //-------------------------------------------------------------
             {
-                _logger.StartupInfo(_cV.Value, "Initializing CachedAccessTokenProvider with AAD Id's and secrets...");
+                _logger.StartupInfo(_cV.Value, "Initializing StoreServicesCachedTokenProvider with AAD Id's and secrets...");
 
                 var tenantId = Configuration.GetValue(ServiceConstants.AADTenantIdKey, "");
                 var clientId = Configuration.GetValue(ServiceConstants.AADClientIdKey, "");
@@ -121,18 +124,18 @@ namespace MicrosoftStoreServicesSample
 
                 //  Override the HttpClient creation functions in the token provider
                 //  and store client to be from our httpClientFactory for better performance.
-                CachedAccessTokenProvider.CreateHttpClientFunc = httpClientFactory.CreateClient;
+                StoreServicesCachedTokenProvider.CreateHttpClientFunc = httpClientFactory.CreateClient;
                 StoreServicesClient.CreateHttpClientFunc = httpClientFactory.CreateClient;
 
                 _logger.StartupInfo(_cV.Value, "Initializing AAD Tokens...");
-                var cachedAccessTokenProvider = new CachedAccessTokenProvider(serverCache,
+                var cachedTokenProvider = new StoreServicesCachedTokenProvider(serverCache,
                                                                               tenantId,
                                                                               clientId,
                                                                               clientSecret);
 
-                var serviceTokenTask = cachedAccessTokenProvider.GetServiceAccessTokenAsync();
-                var purchaseTokenTask = cachedAccessTokenProvider.GetPurchaseAccessTokenAsync();
-                var collectionsTokenTask = cachedAccessTokenProvider.GetCollectionsAccessTokenAsync();
+                var serviceTokenTask = cachedTokenProvider.GetServiceAccessTokenAsync();
+                var purchaseTokenTask = cachedTokenProvider.GetPurchaseAccessTokenAsync();
+                var collectionsTokenTask = cachedTokenProvider.GetCollectionsAccessTokenAsync();
 
                 serviceTokenTask.Wait();
                 purchaseTokenTask.Wait();
@@ -143,7 +146,7 @@ namespace MicrosoftStoreServicesSample
                     $"Service:{serviceTokenTask.Result.Token}, " +
                     $"Collections:{collectionsTokenTask.Result.Token}, " +
                     $"Purchase:{purchaseTokenTask.Result.Token}");
-
+              
                 //  Now get the ServiceIdenty and we can configure the IStoreServicesFactory
                 var serviceIdentity = Configuration.GetValue(ServiceConstants.ServiceIdentity, ServiceConstants.ServiceName);
                 if (string.IsNullOrEmpty(serviceIdentity))
@@ -155,14 +158,14 @@ namespace MicrosoftStoreServicesSample
                 }
 
                 _logger.StartupInfo(_cV.Value, "Initializing StoreServicesClientFactory...");
-                storeServiceClientFactory.Initialize(serviceIdentity, cachedAccessTokenProvider);
+                storeServiceClientFactory.Initialize(serviceIdentity, cachedTokenProvider);
             }
 
             //  Ensure our persistent DB is created
             using (var context = PersistentDB.ServerDBController.CreateDbContext(Configuration, _cV, _logger))
             {
                 try
-                {
+                { 
                     if (context.Database.EnsureCreated())
                     {
                         _logger.StartupInfo(_cV.Value, "PersistentDB is now created");
@@ -177,6 +180,15 @@ namespace MicrosoftStoreServicesSample
                     _logger.StartupError(_cV.Value, "Unable to validate PersistentDB connection and creation", ex);
                 }
             }
+
+            //  Todo: For testing you can use this block of code to pre-populate the database with values
+            //  to re-run tests when using Clawback and not deleting the messages from the queue.
+            //  If you are going to be using this and debugging, make sure to comment out the block of
+            //  code for Step 6 in RunClawbackV2ReconciliationAsync so the events are not removed from
+            //  the queue as you test and debug.
+            //var consumeManager = new ConsumableManager(Configuration, storeServiceClientFactory, _logger);
+            //var testPopulateTask = consumeManager.PopulateTestValuesInDatabases(_cV);
+            //testPopulateTask.Wait();
 
             _logger.StartupInfo(_cV.Value, "Server initialized and ready for requests");
         }

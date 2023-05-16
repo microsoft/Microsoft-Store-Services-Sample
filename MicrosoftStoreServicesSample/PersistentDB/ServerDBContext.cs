@@ -24,7 +24,7 @@ namespace MicrosoftStoreServicesSample.PersistentDB
         //  But all deployed code should be using a real DB for these tables to prevent
         //  data loss and unnecessary network traffic.
         public DbSet<UserConsumableBalance>       UserBalances { get; set; }
-        public DbSet<ClawbackQueueItem>           ClawbackQueue { get; set; }
+        public DbSet<ClawbackV1QueueItem>           ClawbackQueue { get; set; }
         public DbSet<PendingConsumeRequest>       PendingConsumeRequests { get; set; }
         public DbSet<CompletedConsumeTransaction> CompletedConsumeTransactions { get; set; } 
     }
