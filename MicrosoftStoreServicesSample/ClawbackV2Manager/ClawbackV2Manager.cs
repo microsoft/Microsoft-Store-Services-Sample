@@ -112,16 +112,16 @@ namespace MicrosoftStoreServicesSample
                         if (currentMessage.ClawbackEvent.OrderInfo.SandboxId == sandboxId)
                         {
                             //  Step 3:
-                            //  Check the RefundState to know if we should take action on this or not:
+                            //  Check the EventState to know if we should take action on this or not:
                             //  Refunded - User got their $ and the Microsoft Store was able to remove the item from their account
                             //  Revoked  - User got their $ but the item was already consumed and the Microsoft Store was
                             //             unable to remove the granted qty or item.  The consume completedTransaction for this order
                             //             should be in our CompletedConsumeTransaction database
                             try
                             {
-                                if (currentMessage.ClawbackEvent.OrderInfo.RefundState == RefundStates.Refunded)
+                                if (currentMessage.ClawbackEvent.OrderInfo.EventState == EventStates.Refunded)
                                 {
-                                    logMessage = $"Clawback Event {currentMessage.ClawbackEvent.Id}'s state is {RefundStates.Refunded}.  No further action needed.";
+                                    logMessage = $"Clawback Event {currentMessage.ClawbackEvent.Id}'s state is {EventStates.Refunded}.  No further action needed.";
                                     _logger.ServiceInfo(cV.Value, logMessage);
                                     response.AppendFormat("INFO: {0}\n", logMessage);
 
