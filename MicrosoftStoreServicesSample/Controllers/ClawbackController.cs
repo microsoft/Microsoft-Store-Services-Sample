@@ -194,15 +194,19 @@ namespace MicrosoftStoreServicesSample.Controllers
         [HttpGet]
         public async Task<ActionResult<string>> ClawbackV2Peek()
         {
-            string returnVal = "";
+            var response = new StringBuilder("");
+            var peekMessages = new List<ClawbackV2Message>();
+
+            //  add the header of the output table by passing in an empty list
+            response.Append(FormatResponseForClawbackV2Messages(peekMessages));
 
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
-                var peekResult = await storeClient.ClawbackV2PeekEventsAsync(32);
-                returnVal = FormatResponseForClawbackV2Messages(peekResult);
+                peekMessages = await storeClient.ClawbackV2PeekEventsAsync(32);
+                response.Append(FormatResponseForClawbackV2Messages(peekMessages));
             }
 
-            return returnVal;
+            return response.ToString();
         }
 
         /// <summary>
@@ -387,34 +391,45 @@ namespace MicrosoftStoreServicesSample.Controllers
             if (clawbackMessages.Count == 0)
             {
                 //  This is the end of the list so add this at the top
-                response.Append(
+                response.Insert(0,
                         "\n" +
-                        "| ProductId    | Sandbox    | RefundState | Source               | OrderId                              | LineItemId                           | Purchase Date                 | Refund Initiated Date         | Inserted On                   | Message Id                           | Clawback Event Id                    |\r\n"
-                        // +                                                                                                                                                                                                                                                                                                                                    
-                        //"|--------------|------------|-------------|----------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|\r\n"
+                        "| ProductId    | Sandbox    | EventState | Source               | OrderId                              | LineItemId                           | Purchase Date                 | Refund Initiated Date         | Inserted On                   | Message Id                           | Clawback Event Id                    | Sub. Start Date               | Sub. Days | Sub. Used Days |\r\n"
+                         +                                                                                                                                                                                                                                                                                                                              
+                        "|--------------|------------|------------|----------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|-------------------------------|-----------|----------------|\r\n"
                         );
             }
 
 
             foreach (var clawbackMessage in clawbackMessages)
             {
-                response.AppendFormat("| {0,-12} | {1,-10} | {2,-11} | {3,-20} | {4,-36} | {5,-36} | {6,-29} | {7,-29} | {8,-29} | {9,-36} | {10,-36} |\n",
+                var subStart = "";
+                var subTotalDays = "";
+                var subUsedDays = "";
+
+                if (clawbackMessage.ClawbackEvent.OrderInfo.SubscriptionData != null)
+                {
+                    subStart = clawbackMessage.ClawbackEvent.OrderInfo.SubscriptionData.DurationIntervalStart.ToString();
+                    subTotalDays = clawbackMessage.ClawbackEvent.OrderInfo.SubscriptionData.DurationInDays.ToString();
+                    subUsedDays = clawbackMessage.ClawbackEvent.OrderInfo.SubscriptionData.ConsumedDurationInDays.ToString();
+                }
+                
+                response.AppendFormat("| {0,-12} | {1,-10} | {2,-10} | {3,-20} | {4,-36} | {5,-36} | {6,-29} | {7,-29} | {8,-29} | {9,-36} | {10,-36} | {11,-29} | {12,-9} | {13,-14} |\r\n",
                                       clawbackMessage.ClawbackEvent.OrderInfo.ProductId,
                                       clawbackMessage.ClawbackEvent.OrderInfo.SandboxId,
-                                      clawbackMessage.ClawbackEvent.OrderInfo.RefundState,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.EventState,
                                       clawbackMessage.ClawbackEvent.Source,
                                       clawbackMessage.ClawbackEvent.OrderInfo.OrderId,
                                       clawbackMessage.ClawbackEvent.OrderInfo.LineItemId,
                                       clawbackMessage.ClawbackEvent.OrderInfo.PurchasedDate,
-                                      clawbackMessage.ClawbackEvent.OrderInfo.RefundInitiatedDate,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.EventDate,
                                       clawbackMessage.InsertedOn,
                                       clawbackMessage.MessageId,
-                                      clawbackMessage.ClawbackEvent.Id
+                                      clawbackMessage.ClawbackEvent.Id,
+                                      subStart,
+                                      subTotalDays,
+                                      subUsedDays
                                       );
-
-                //response.AppendFormat(
-                //    "|--------------|------------|-------------|----------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|\n");
-            }
+             }
 
             return response.ToString();
         }

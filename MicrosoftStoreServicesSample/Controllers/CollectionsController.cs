@@ -336,7 +336,8 @@ namespace MicrosoftStoreServicesSample.Controllers
                 //  TODO: Operate on the results with your custom logic
                 //        For this sample we just iterate through the results, format them to
                 //        a readable string and send it back to the client as proof of flow.
-                FormatCollectionsResponse(usersCollection);
+                response.Append(FormatCollectionsResponse(usersCollection));
+
 
                 //  If this is from the Client sample, include the JSON so that it can display the items in the UI
                 //  properly
