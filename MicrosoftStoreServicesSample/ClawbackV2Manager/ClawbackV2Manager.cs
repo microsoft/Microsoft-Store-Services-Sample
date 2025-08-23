@@ -65,7 +65,7 @@ namespace MicrosoftStoreServicesSample
         /// <param name="sandboxId">Only act on messages for this Sandbox</param>
         /// <param name="cV"></param>
         /// <returns></returns>
-        public async Task<string> RunClawbackV2ReconciliationAsync(string sandboxId, CorrelationVector cV)
+        public async Task<string> RunClawbackV2ReconciliationAsync(string sandboxId, CorrelationVector cV, bool printMessages = false)
         {
             if(string.IsNullOrWhiteSpace(sandboxId))
             {
@@ -77,8 +77,10 @@ namespace MicrosoftStoreServicesSample
             _logger.ServiceInfo(cV.Value, logMessage);
             response.AppendFormat("INFO: {0}\n", logMessage);
             int numProcessed = 0;
-            int numDeleted = 0;
-            int numSkipped = 0;
+            int numDeleted   = 0;
+            int numSkipped   = 0;
+
+            var messagesToPrint = new List<ClawbackV2Message>();
 
             using (var storeClient = _storeServicesClientFactory.CreateClient())
             {
@@ -89,7 +91,7 @@ namespace MicrosoftStoreServicesSample
                     //  Call the ClawbackV2 service to see if there are any messages we can process
                     //  from the queue.
                     queueMessages = await storeClient.ClawbackV2QueryEventsAsync(32);
-
+                    
                     logMessage = $"{queueMessages.Count} clawback events found";
                     _logger.ServiceInfo(cV.Value, logMessage);
                     response.AppendFormat("INFO: {0}\n", logMessage);
@@ -192,13 +194,15 @@ namespace MicrosoftStoreServicesSample
                                 //        comment this block out so that the messages are not deleted as you debug through
                                 //        the events.
                                 var result = await storeClient.ClawbackV2DeleteMessageAsync(currentMessage);
-                                if (result == 200)
+                                if (result == 200 || result == 204)
                                 {
                                     logMessage = $"Deleted messageId {currentMessage.MessageId} from the queue";
                                     _logger.ServiceInfo(cV.Value, logMessage);
                                     response.AppendFormat("INFO: {0}\n", logMessage);
                                     numDeleted++;
                                 }
+
+                                numProcessed++;
                             }
                             catch (Exception ex)
                             {
@@ -206,7 +210,11 @@ namespace MicrosoftStoreServicesSample
                                 _logger.ServiceWarning(cV.Value, logMessage, ex);
                                 response.AppendFormat("Warning: {0}\n", logMessage);
                             }
-                            numProcessed++;
+
+                            if(printMessages)
+                            {
+                                messagesToPrint.Add(currentMessage);
+                            }
                         }
                         else
                         {
@@ -219,6 +227,81 @@ namespace MicrosoftStoreServicesSample
             logMessage = $"ClawbackV2 event reconciliation task finished: {numProcessed} processed, {numDeleted} deleted, {numSkipped} skipped";
             _logger.ServiceInfo(cV.Value, logMessage);
             response.AppendFormat("INFO: {0}\n", logMessage);
+            
+            if (printMessages)
+            {
+                //  Print the header of the messages
+                response.Append(FormatClawbackMessagesToTextHeader());
+
+                //  Print the messages
+                response.Append(FormatClawbackMessagesToText(messagesToPrint));
+            }
+
+            return response.ToString();
+        }
+
+        /// <summary>
+        /// Utility function to print the header of the coumns for the text format of event messages 
+        /// test endpoints
+        /// </summary>
+        /// <returns></returns>
+        public static string FormatClawbackMessagesToTextHeader()
+        {
+            var response = new StringBuilder("");
+
+            response.Insert(0,
+                    "\n" +
+                    "| ProductId    | Sandbox    | EventState | Source               | OrderId                              | LineItemId                           | Purchase Date                 | Refund Initiated Date         | Inserted On                   | Message Id                           | Clawback Event Id                    | Sub. Start Date               | Sub. Days | Sub. Used Days | Sub. Refund Type |\r\n"
+                        +
+                    "|--------------|------------|------------|----------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|-------------------------------|-----------|----------------|------------------|\r\n"
+                    );
+
+            return response.ToString();
+        }
+
+        /// <summary>
+        /// Utility function to print out the messages in a set text format that can be exported to a spreadsheet or other text document 
+        /// test endpoints
+        /// </summary>
+        /// <param name="clawbackMessages"></param>
+        /// <returns></returns>
+        public static string FormatClawbackMessagesToText(List<ClawbackV2Message> clawbackMessages)
+        {
+            var response = new StringBuilder("");
+
+            foreach (var clawbackMessage in clawbackMessages)
+            {
+                var subStart = "";
+                var subTotalDays = "";
+                var subUsedDays = "";
+                var subRefundType = "";
+
+                if (clawbackMessage.ClawbackEvent.OrderInfo.RecurrenceData != null)
+                {
+                    subStart = clawbackMessage.ClawbackEvent.OrderInfo.RecurrenceData.DurationIntervalStart.ToString();
+                    subTotalDays = clawbackMessage.ClawbackEvent.OrderInfo.RecurrenceData.DurationInDays.ToString();
+                    subUsedDays = clawbackMessage.ClawbackEvent.OrderInfo.RecurrenceData.ConsumedDurationInDays.ToString();
+                    subRefundType = clawbackMessage.ClawbackEvent.OrderInfo.RecurrenceData.RefundType.ToString();
+                }
+
+                response.AppendFormat("| {0,-12} | {1,-10} | {2,-10} | {3,-20} | {4,-36} | {5,-36} | {6,-29} | {7,-29} | {8,-29} | {9,-36} | {10,-36} | {11,-29} | {12,-9} | {13,-14} | {14, -16} |\r\n",
+                                      clawbackMessage.ClawbackEvent.OrderInfo.ProductId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.SandboxId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.EventState,
+                                      clawbackMessage.ClawbackEvent.Source,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.OrderId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.LineItemId,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.PurchasedDate,
+                                      clawbackMessage.ClawbackEvent.OrderInfo.EventDate,
+                                      clawbackMessage.InsertedOn,
+                                      clawbackMessage.MessageId,
+                                      clawbackMessage.ClawbackEvent.Id,
+                                      subStart,
+                                      subTotalDays,
+                                      subUsedDays,
+                                      subRefundType
+                                      );
+            }
 
             return response.ToString();
         }

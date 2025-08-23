@@ -22,9 +22,10 @@ namespace MicrosoftStoreServicesSample
             }
         }
 
-        public const string AADClientIdKey     = "AAD_CLIENT_ID";
-        public const string AADTenantIdKey     = "AAD_TENANT_ID";
-        public const string AADClientSecretKey = "AAD_CLIENT_SECRET";
-        public const string ServiceIdentity    = "SERVICE_IDENTITY";
+        public const string EntraClientIdKey  = "ENTRA_CLIENT_ID";
+        public const string EntraTenantIdKey  = "ENTRA_TENANT_ID";
+        public const string EntraManagedIdKey = "ENTRA_MANAGED_ID";
+        public const string EntraSecretKey    = "ENTRA_SECRET";
+        public const string ServiceIdentity   = "SERVICE_IDENTITY";
     }
 }

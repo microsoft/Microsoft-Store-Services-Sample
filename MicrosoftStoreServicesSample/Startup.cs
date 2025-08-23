@@ -103,11 +103,12 @@ namespace MicrosoftStoreServicesSample
             //  Initializing Access Tokens and StoreServicesClientFactory
             //-------------------------------------------------------------
             {
-                _logger.StartupInfo(_cV.Value, "Initializing StoreServicesCachedTokenProvider with AAD Id's and secrets...");
+                _logger.StartupInfo(_cV.Value, "Initializing StoreServicesCachedTokenProvider...");
 
-                var tenantId = Configuration.GetValue(ServiceConstants.AADTenantIdKey, "");
-                var clientId = Configuration.GetValue(ServiceConstants.AADClientIdKey, "");
-                var clientSecret = Configuration.GetValue(ServiceConstants.AADClientSecretKey, "");
+                var tenantId = Configuration.GetValue(ServiceConstants.EntraTenantIdKey, "");
+                var clientId = Configuration.GetValue(ServiceConstants.EntraClientIdKey, "");
+                var clientSecret = Configuration.GetValue(ServiceConstants.EntraSecretKey, "");
+                var managedIdentity = Configuration.GetValue(ServiceConstants.EntraManagedIdKey, "");
 
                 if (string.IsNullOrEmpty(tenantId))
                 {
@@ -117,9 +118,9 @@ namespace MicrosoftStoreServicesSample
                 {
                     _logger.StartupError(_cV.Value, "Unable to get ClientId from config settings", null);
                 }
-                if (string.IsNullOrEmpty(clientSecret))
+                if (string.IsNullOrEmpty(clientSecret) && string.IsNullOrEmpty(managedIdentity))
                 {
-                    _logger.StartupError(_cV.Value, "Unable to get ClientSecret from config settings", null);
+                    _logger.StartupWarning(_cV.Value, "Unable to get ManagedIdentity or ClientSecret from config settings.  At least one is required", null);
                 }
 
                 //  Override the HttpClient creation functions in the token provider
@@ -127,11 +128,30 @@ namespace MicrosoftStoreServicesSample
                 StoreServicesCachedTokenProvider.CreateHttpClientFunc = httpClientFactory.CreateClient;
                 StoreServicesClient.CreateHttpClientFunc = httpClientFactory.CreateClient;
 
-                _logger.StartupInfo(_cV.Value, "Initializing AAD Tokens...");
-                var cachedTokenProvider = new StoreServicesCachedTokenProvider(serverCache,
-                                                                              tenantId,
-                                                                              clientId,
-                                                                              clientSecret);
+                _logger.StartupInfo(_cV.Value, "Initializing Entra Access Tokens...");
+
+                // temporary values to switch between secret and managed identy.
+                var secretOrManagedID = "";
+                bool useManagedIdentity = false;
+
+                if (string.IsNullOrEmpty(clientSecret))
+                {
+                    _logger.StartupInfo(_cV.Value, "Using Azure Managed Identity...");
+                    secretOrManagedID = managedIdentity;
+                    useManagedIdentity = true;
+                }
+                else
+                {
+                    _logger.StartupInfo(_cV.Value, "Using Entra Secret Key...");
+                    secretOrManagedID = clientSecret;
+                    useManagedIdentity = false;
+                }
+                
+                var cachedTokenProvider = new StoreServicesCachedTokenProvider( serverCache,
+                                                                                tenantId,
+                                                                                clientId,
+                                                                                secretOrManagedID,
+                                                                                useManagedIdentity);
 
                 var serviceTokenTask = cachedTokenProvider.GetServiceAccessTokenAsync();
                 var purchaseTokenTask = cachedTokenProvider.GetPurchaseAccessTokenAsync();
