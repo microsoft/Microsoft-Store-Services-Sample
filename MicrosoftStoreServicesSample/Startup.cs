@@ -1,8 +1,8 @@
 //-----------------------------------------------------------------------------
-// Startup.cs
+//Â Startup.cs
 //
-// Xbox Advanced Technology Group (ATG)
-// Copyright (C) Microsoft Corporation. All rights reserved.
+//Â Xbox AdvancedÂ TechnologyÂ GroupÂ (ATG)
+//Â CopyrightÂ (C)Â MicrosoftÂ Corporation.Â AllÂ rightsÂ reserved.
 // Licensed under the MIT License. See License file under the project root for
 // license information.
 //-----------------------------------------------------------------------------
@@ -130,7 +130,7 @@ namespace MicrosoftStoreServicesSample
 
                 _logger.StartupInfo(_cV.Value, "Initializing Entra Access Tokens...");
 
-                // temporary values to switch between secret and managed identy.
+                // temporary values to switch between secret and managed identity.
                 var secretOrManagedID = "";
                 bool useManagedIdentity = false;
 
