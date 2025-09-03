@@ -267,6 +267,23 @@ namespace MicrosoftStoreServicesSample
         /// <returns></returns>
         public static string FormatClawbackMessagesToText(List<ClawbackV2Message> clawbackMessages)
         {
+            // Column width constants for output formatting
+            const int ProductIdWidth = 12;
+            const int SandboxIdWidth = 10;
+            const int EventStateWidth = 10;
+            const int SourceWidth = 20;
+            const int OrderIdWidth = 36;
+            const int LineItemIdWidth = 36;
+            const int PurchasedDateWidth = 29;
+            const int EventDateWidth = 29;
+            const int InsertedOnWidth = 29;
+            const int MessageIdWidth = 36;
+            const int ClawbackEventIdWidth = 36;
+            const int SubStartWidth = 29;
+            const int SubTotalDaysWidth = 9;
+            const int SubUsedDaysWidth = 14;
+            const int SubRefundTypeWidth = 16;
+
             var response = new StringBuilder("");
 
             foreach (var clawbackMessage in clawbackMessages)
@@ -284,23 +301,24 @@ namespace MicrosoftStoreServicesSample
                     subRefundType = clawbackMessage.ClawbackEvent.OrderInfo.RecurrenceData.RefundType.ToString();
                 }
 
-                response.AppendFormat("| {0,-12} | {1,-10} | {2,-10} | {3,-20} | {4,-36} | {5,-36} | {6,-29} | {7,-29} | {8,-29} | {9,-36} | {10,-36} | {11,-29} | {12,-9} | {13,-14} | {14, -16} |\r\n",
-                                      clawbackMessage.ClawbackEvent.OrderInfo.ProductId,
-                                      clawbackMessage.ClawbackEvent.OrderInfo.SandboxId,
-                                      clawbackMessage.ClawbackEvent.OrderInfo.EventState,
-                                      clawbackMessage.ClawbackEvent.Source,
-                                      clawbackMessage.ClawbackEvent.OrderInfo.OrderId,
-                                      clawbackMessage.ClawbackEvent.OrderInfo.LineItemId,
-                                      clawbackMessage.ClawbackEvent.OrderInfo.PurchasedDate,
-                                      clawbackMessage.ClawbackEvent.OrderInfo.EventDate,
-                                      clawbackMessage.InsertedOn,
-                                      clawbackMessage.MessageId,
-                                      clawbackMessage.ClawbackEvent.Id,
-                                      subStart,
-                                      subTotalDays,
-                                      subUsedDays,
-                                      subRefundType
-                                      );
+                response.AppendFormat(
+                    "| {0,-" + ProductIdWidth + "} | {1,-" + SandboxIdWidth + "} | {2,-" + EventStateWidth + "} | {3,-" + SourceWidth + "} | {4,-" + OrderIdWidth + "} | {5,-" + LineItemIdWidth + "} | {6,-" + PurchasedDateWidth + "} | {7,-" + EventDateWidth + "} | {8,-" + InsertedOnWidth + "} | {9,-" + MessageIdWidth + "} | {10,-" + ClawbackEventIdWidth + "} | {11,-" + SubStartWidth + "} | {12,-" + SubTotalDaysWidth + "} | {13,-" + SubUsedDaysWidth + "} | {14,-" + SubRefundTypeWidth + "} |\r\n",
+                    clawbackMessage.ClawbackEvent.OrderInfo.ProductId,
+                    clawbackMessage.ClawbackEvent.OrderInfo.SandboxId,
+                    clawbackMessage.ClawbackEvent.OrderInfo.EventState,
+                    clawbackMessage.ClawbackEvent.Source,
+                    clawbackMessage.ClawbackEvent.OrderInfo.OrderId,
+                    clawbackMessage.ClawbackEvent.OrderInfo.LineItemId,
+                    clawbackMessage.ClawbackEvent.OrderInfo.PurchasedDate,
+                    clawbackMessage.ClawbackEvent.OrderInfo.EventDate,
+                    clawbackMessage.InsertedOn,
+                    clawbackMessage.MessageId,
+                    clawbackMessage.ClawbackEvent.Id,
+                    subStart,
+                    subTotalDays,
+                    subUsedDays,
+                    subRefundType
+                );
             }
 
             return response.ToString();
