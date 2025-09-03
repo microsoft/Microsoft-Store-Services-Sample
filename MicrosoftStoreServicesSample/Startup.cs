@@ -110,17 +110,26 @@ namespace MicrosoftStoreServicesSample
                 var clientSecret = Configuration.GetValue(ServiceConstants.EntraSecretKey, "");
                 var managedIdentity = Configuration.GetValue(ServiceConstants.EntraManagedIdKey, "");
 
+                bool exitEarly = false;
                 if (string.IsNullOrEmpty(tenantId))
                 {
                     _logger.StartupError(_cV.Value, "Unable to get TenantId from config settings", null);
+                    exitEarly = true;
                 }
                 if (string.IsNullOrEmpty(clientId))
                 {
                     _logger.StartupError(_cV.Value, "Unable to get ClientId from config settings", null);
+                    exitEarly = true;
                 }
                 if (string.IsNullOrEmpty(clientSecret) && string.IsNullOrEmpty(managedIdentity))
                 {
-                    _logger.StartupWarning(_cV.Value, "Unable to get ManagedIdentity or ClientSecret from config settings.  At least one is required", null);
+                    _logger.StartupError(_cV.Value, "Unable to get ManagedIdentity or ClientSecret from config settings.  At least one is required", null);
+                    exitEarly = true;
+                }
+
+                if (exitEarly)
+                {
+                    throw new InvalidOperationException("Critical configuration missing, see logs. Application cannot start.");
                 }
 
                 //  Override the HttpClient creation functions in the token provider
