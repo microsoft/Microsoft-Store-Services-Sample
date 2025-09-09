@@ -202,7 +202,7 @@ namespace MicrosoftStoreServicesSample
                                     numDeleted++;
                                 }
 
-                                numProcessed++;
+                                
                             }
                             catch (Exception ex)
                             {
@@ -215,6 +215,8 @@ namespace MicrosoftStoreServicesSample
                             {
                                 messagesToPrint.Add(currentMessage);
                             }
+
+                            numProcessed++;
                         }
                         else
                         {
