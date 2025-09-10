@@ -303,22 +303,23 @@ namespace MicrosoftStoreServicesSample
                     subRefundType = clawbackMessage.ClawbackEvent.OrderInfo.RecurrenceData.RefundType.ToString();
                 }
 
-                response.AppendLine(
-                    $"| {clawbackMessage.ClawbackEvent.OrderInfo.ProductId,-{ProductIdWidth}} " +
-                    $"| {clawbackMessage.ClawbackEvent.OrderInfo.SandboxId,-{SandboxIdWidth}} " +
-                    $"| {clawbackMessage.ClawbackEvent.OrderInfo.EventState,-{EventStateWidth}} " +
-                    $"| {clawbackMessage.ClawbackEvent.Source,-{SourceWidth}} " +
-                    $"| {clawbackMessage.ClawbackEvent.OrderInfo.OrderId,-{OrderIdWidth}} " +
-                    $"| {clawbackMessage.ClawbackEvent.OrderInfo.LineItemId,-{LineItemIdWidth}} " +
-                    $"| {clawbackMessage.ClawbackEvent.OrderInfo.PurchasedDate,-{PurchasedDateWidth}} " +
-                    $"| {clawbackMessage.ClawbackEvent.OrderInfo.EventDate,-{EventDateWidth}} " +
-                    $"| {clawbackMessage.InsertedOn,-{InsertedOnWidth}} " +
-                    $"| {clawbackMessage.MessageId,-{MessageIdWidth}} " +
-                    $"| {clawbackMessage.ClawbackEvent.Id,-{ClawbackEventIdWidth}} " +
-                    $"| {subStart,-{SubStartWidth}} " +
-                    $"| {subTotalDays,-{SubTotalDaysWidth}} " +
-                    $"| {subUsedDays,-{SubUsedDaysWidth}} " +
-                    $"| {subRefundType,-{SubRefundTypeWidth}} |"
+                response.AppendFormat(
+                    "| {0,-" + ProductIdWidth + "} | {1,-" + SandboxIdWidth + "} | {2,-" + EventStateWidth + "} | {3,-" + SourceWidth + "} | {4,-" + OrderIdWidth + "} | {5,-" + LineItemIdWidth + "} | {6,-" + PurchasedDateWidth + "} | {7,-" + EventDateWidth + "} | {8,-" + InsertedOnWidth + "} | {9,-" + MessageIdWidth + "} | {10,-" + ClawbackEventIdWidth + "} | {11,-" + SubStartWidth + "} | {12,-" + SubTotalDaysWidth + "} | {13,-" + SubUsedDaysWidth + "} | {14,-" + SubRefundTypeWidth + "} |\r\n",
+                    clawbackMessage.ClawbackEvent.OrderInfo.ProductId,
+                    clawbackMessage.ClawbackEvent.OrderInfo.SandboxId,
+                    clawbackMessage.ClawbackEvent.OrderInfo.EventState,
+                    clawbackMessage.ClawbackEvent.Source,
+                    clawbackMessage.ClawbackEvent.OrderInfo.OrderId,
+                    clawbackMessage.ClawbackEvent.OrderInfo.LineItemId,
+                    clawbackMessage.ClawbackEvent.OrderInfo.PurchasedDate,
+                    clawbackMessage.ClawbackEvent.OrderInfo.EventDate,
+                    clawbackMessage.InsertedOn,
+                    clawbackMessage.MessageId,
+                    clawbackMessage.ClawbackEvent.Id,
+                    subStart,
+                    subTotalDays,
+                    subUsedDays,
+                    subRefundType
                 );
             }
 
