@@ -37,21 +37,21 @@ namespace MicrosoftStoreServicesSample
     public static class LoggerExtensions
     {
         //  Service specific logging actions
-        private static readonly Action<ILogger, string, string, Exception> _startupError;
-        private static readonly Action<ILogger, string, string, Exception> _startupInfo;
-        private static readonly Action<ILogger, string, string, Exception> _startupWarning;
-        private static readonly Action<ILogger, string, string, Exception> _serviceError;
-        private static readonly Action<ILogger, string, string, Exception> _serviceInfo;
-        private static readonly Action<ILogger, string, string, Exception> _serviceWarning;
-        private static readonly Action<ILogger, string, string, string, string, Exception> _collectionsInvalidRequest;
-        private static readonly Action<ILogger, string, string, string, string, uint, Exception> _removePendingTransaction;
-        private static readonly Action<ILogger, string, string, string, string, uint, Exception> _addPendingTransaction;
-        private static readonly Action<ILogger, string, string, string, string, uint, Exception> _addUserPurchaseIdToClawbackQueue;
-        private static readonly Action<ILogger, string, string, string, Exception> _queryResponse;
-        private static readonly Action<ILogger, string, string, string, Exception> _queryError;
-        private static readonly Action<ILogger, string, string, string, Exception> _consumeResponse;
-        private static readonly Action<ILogger, string, string, string, string, uint, string, Exception> _consumeError;
-        private static readonly Action<ILogger, string, string, Exception> _retryPendingConsumesResponse;
+        private static readonly Action<ILogger, string, DateTime, string, Exception> _startupError;
+        private static readonly Action<ILogger, string, DateTime, string, Exception> _startupInfo;
+        private static readonly Action<ILogger, string, DateTime, string, Exception> _startupWarning;
+        private static readonly Action<ILogger, string, DateTime, string, Exception> _serviceError;
+        private static readonly Action<ILogger, string, DateTime, string, Exception> _serviceInfo;
+        private static readonly Action<ILogger, string, DateTime, string, Exception> _serviceWarning;
+        private static readonly Action<ILogger, string, DateTime, string, string, string, Exception> _collectionsInvalidRequest;
+        private static readonly Action<ILogger, string, DateTime, string, string, string, uint, Exception> _removePendingTransaction;
+        private static readonly Action<ILogger, string, DateTime, string, string, string, uint, Exception> _addPendingTransaction;
+        private static readonly Action<ILogger, string, DateTime, string, string, string, uint, Exception> _addUserPurchaseIdToClawbackQueue;
+        private static readonly Action<ILogger, string, DateTime, string, string, Exception> _queryResponse;
+        private static readonly Action<ILogger, string, DateTime, string, string, Exception> _queryError;
+        private static readonly Action<ILogger, string, DateTime, string, string, Exception> _consumeResponse;
+        private static readonly Action<ILogger, string,  string, string, string, uint, string, Exception> _consumeError;
+        private static readonly Action<ILogger, string, DateTime, string, Exception> _retryPendingConsumesResponse;
 
         private static string SanitizeLineEndings(string str)
         {
@@ -70,80 +70,80 @@ namespace MicrosoftStoreServicesSample
         //  This is where we define the static format for each of our logging APIs
         static LoggerExtensions()
         {
-            _startupInfo = LoggerMessage.Define<string, string>(
+            _startupInfo = LoggerMessage.Define<string, DateTime, string>(
                 LogLevel.Information,
                 new EventId(LogEventIds.Startup, nameof(StartupInfo)),
-                "{{\"cV\":\"{cV}\",\"info\":\"{info}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"info\":\"{info}\"}}");
 
-            _startupError = LoggerMessage.Define<string, string>(
+            _startupError = LoggerMessage.Define<string, DateTime, string>(
                 LogLevel.Critical,
                 new EventId(LogEventIds.Startup, nameof(StartupError)),
-                "{{\"cV\":\"{cV}\",\"error\":\"{error}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"error\":\"{error}\"}}");
 
-            _startupWarning = LoggerMessage.Define<string, string>(
+            _startupWarning = LoggerMessage.Define<string, DateTime, string>(
                 LogLevel.Warning,
                 new EventId(LogEventIds.Startup, nameof(StartupError)),
-                "{{\"cV\":\"{cV}\",\"error\":\"{error}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"error\":\"{error}\"}}");
 
-            _serviceInfo = LoggerMessage.Define<string, string>(
+            _serviceInfo = LoggerMessage.Define<string, DateTime, string>(
                 LogLevel.Information,
                 new EventId(LogEventIds.Service, nameof(StartupInfo)),
-                "{{\"cV\":\"{cV}\",\"info\":\"{info}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"info\":\"{info}\"}}");
 
-            _serviceError = LoggerMessage.Define<string, string>(
+            _serviceError = LoggerMessage.Define<string, DateTime, string>(
                 LogLevel.Critical,
                 new EventId(LogEventIds.Service, nameof(StartupError)),
-                "{{\"cV\":\"{cV}\",\"error\":\"{error}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"error\":\"{error}\"}}");
 
-            _serviceWarning = LoggerMessage.Define<string, string>(
+            _serviceWarning = LoggerMessage.Define<string, DateTime, string>(
                 LogLevel.Warning,
                 new EventId(LogEventIds.Service, nameof(StartupError)),
-                "{{\"cV\":\"{cV}\",\"error\":\"{error}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"error\":\"{error}\"}}");
 
-            _collectionsInvalidRequest = LoggerMessage.Define<string, string, string, string>(
+            _collectionsInvalidRequest = LoggerMessage.Define<string, DateTime, string, string, string>(
                 LogLevel.Warning,
                 new EventId(LogEventIds.Collections, nameof(CollectionsInvalidRequest)),
-                "{{\"cV\":\"{cV}\",\"userId\":\"{userId}\",\"error\":\"{error}\",\"urlPath\":\"{urlPath}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"userId\":\"{userId}\",\"error\":\"{error}\",\"urlPath\":\"{urlPath}\"}}");
 
-            _removePendingTransaction = LoggerMessage.Define<string, string, string, string, uint>(
+            _removePendingTransaction = LoggerMessage.Define<string, DateTime, string, string, string, uint>(
                 LogLevel.Information,
                 new EventId(LogEventIds.TransactionDB, nameof(RemovePendingTransaction)),
-                "{{\"cV\":\"{cV}\",\"userId\":\"{userId}\",\"transaction\":\"{transaction}\",\"product\":\"{product}\",\"quantity\":{quantity},\"status\":\"removed\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"userId\":\"{userId}\",\"transaction\":\"{transaction}\",\"product\":\"{product}\",\"quantity\":{quantity},\"status\":\"removed\"}}");
 
-            _addPendingTransaction = LoggerMessage.Define<string, string, string, string, uint>(
+            _addPendingTransaction = LoggerMessage.Define<string, DateTime, string, string, string, uint>(
                 LogLevel.Information,
                 new EventId(LogEventIds.TransactionDB, nameof(AddPendingTransaction)),
-                "{{\"cV\":\"{cV}\",\"userId\":\"{userId}\",\"transaction\":\"{transaction}\",\"product\":\"{product}\",\"quantity\":{quantity},\"status\":\"pending\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"userId\":\"{userId}\",\"transaction\":\"{transaction}\",\"product\":\"{product}\",\"quantity\":{quantity},\"status\":\"pending\"}}");
 
-            _addUserPurchaseIdToClawbackQueue = LoggerMessage.Define<string, string, string, string, uint>(
+            _addUserPurchaseIdToClawbackQueue = LoggerMessage.Define<string, DateTime, string, string, string, uint>(
                 LogLevel.Information,
                 new EventId(LogEventIds.Clawback, nameof(AddUserPurchaseIdToClawbackQueue)),
-                "{{\"cV\":\"{cV}\",\"userId\":\"{userId}\",\"transaction\":\"{transaction}\",\"product\":\"{product}\",\"quantity\":{quantity},\"status\":\"queued\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"userId\":\"{userId}\",\"transaction\":\"{transaction}\",\"product\":\"{product}\",\"quantity\":{quantity},\"status\":\"queued\"}}");
 
-            _queryResponse = LoggerMessage.Define<string, string, string>(
+            _queryResponse = LoggerMessage.Define<string, DateTime, string, string>(
                 LogLevel.Information,
                 new EventId(LogEventIds.CollectionsQuery, nameof(QueryResponse)),
-                "{{\"cV\":\"{cV}\",\"userId\":\"{userId}\",\"response\":\"{response}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"userId\":\"{userId}\",\"response\":\"{response}\"}}");
 
-            _queryError = LoggerMessage.Define<string, string, string>(
+            _queryError = LoggerMessage.Define<string, DateTime, string, string>(
                 LogLevel.Error,
                 new EventId(LogEventIds.CollectionsQuery, nameof(QueryError)),
-                "{{\"cV\":\"{cV}\",\"userId\":\"{userId}\",\"status\":\"{message}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"userId\":\"{userId}\",\"status\":\"{message}\"}}");
 
-            _consumeResponse = LoggerMessage.Define<string, string, string>(
+            _consumeResponse = LoggerMessage.Define<string, DateTime, string, string>(
                 LogLevel.Information,
                 new EventId(LogEventIds.CollectionsConsume, nameof(ConsumeResponse)),
-                "{{\"cV\":\"{cV}\",\"userId\":\"{userId}\",\"response\":\"{response}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"userId\":\"{userId}\",\"response\":\"{response}\"}}");
 
             _consumeError = LoggerMessage.Define<string, string, string, string, uint, string>(
                 LogLevel.Error,
                 new EventId(LogEventIds.CollectionsConsume, nameof(ConsumeError)),
                 "{{\"cV\":\"{cV}\",\"userId\":\"{userId}\",\"transaction\":\"{transaction}\",\"product\":\"{product}\",\"quantity\":{quantity},\"status\":\"{message}\"}}");
 
-            _retryPendingConsumesResponse = LoggerMessage.Define<string, string>(
+            _retryPendingConsumesResponse = LoggerMessage.Define<string, DateTime, string>(
                 LogLevel.Information,
                 new EventId(LogEventIds.CollectionsRetry, nameof(RetryPendingConsumesResponse)),
-                "{{\"cV\":\"{cV}\",\"response\":\"{response}\"}}");
+                "{{\"cV\":\"{cV}\",\"dateTime\":\"{dateTime}\",\"response\":\"{response}\"}}");
         }
 
         public static string FormatResponseForLogs(HttpResponseMessage response, string responseBody)
@@ -180,66 +180,66 @@ namespace MicrosoftStoreServicesSample
         //  Controller / service specific logging functions
         public static void StartupInfo(this ILogger logger, string cV, string info)
         {
-            _startupInfo(logger, cV, info, null);
+            _startupInfo(logger, cV, DateTime.UtcNow, info, null);
         }
 
         public static void StartupError(this ILogger logger, string cV, string info, Exception ex)
         {
-            _startupError(logger, cV, info, ex);
+            _startupError(logger, cV, DateTime.UtcNow, info, ex);
         }
         public static void StartupWarning(this ILogger logger, string cV, string info, Exception ex)
         {
-            _startupWarning(logger, cV, info, ex);
+            _startupWarning(logger, cV, DateTime.UtcNow, info, ex);
         }
 
         public static void ServiceWarning(this ILogger logger, string cV, string info, Exception ex)
         {
-            _serviceWarning(logger, cV, info, ex);
+            _serviceWarning(logger, cV, DateTime.UtcNow, info, ex);
         }
 
         public static void ServiceInfo(this ILogger logger, string cV, string info)
         {
-            _serviceInfo(logger, cV, info, null);
+            _serviceInfo(logger, cV, DateTime.UtcNow, info, null);
         }
 
         public static void ServiceError(this ILogger logger, string cV, string info, Exception ex)
         {
-            _serviceError(logger, cV, info, ex);
+            _serviceError(logger, cV, DateTime.UtcNow, info, ex);
         }
 
         public static void CollectionsInvalidRequest(this ILogger logger, string cV, string userId, string error, string urlPath)
         {
-            _collectionsInvalidRequest(logger, cV, userId, error, urlPath, null);
+            _collectionsInvalidRequest(logger, cV, DateTime.UtcNow, userId, error, urlPath, null);
         }
 
         public static void AddPendingTransaction(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity )
         {
-            _addPendingTransaction(logger, cV, userId, transactionId, productId, quantity, null);
+            _addPendingTransaction(logger, cV, DateTime.UtcNow, userId, transactionId, productId, quantity, null);
         }
 
         public static void AddUserPurchaseIdToClawbackQueue(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity)
         {
-            _addUserPurchaseIdToClawbackQueue(logger, cV, userId, transactionId, productId, quantity, null);
+            _addUserPurchaseIdToClawbackQueue(logger, cV, DateTime.UtcNow, userId, transactionId, productId, quantity, null);
         }
 
         public static void RemovePendingTransaction(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity)
         {
-            _removePendingTransaction(logger, cV, userId, transactionId, productId, quantity, null);
+            _removePendingTransaction(logger, cV, DateTime.UtcNow, userId, transactionId, productId, quantity, null);
         }
 
         public static void QueryResponse(this ILogger logger, string cV, string userId, string response)
         {
-            _queryResponse(logger, cV, userId, SanitizeLineEndings(response), null);
+            _queryResponse(logger, cV, DateTime.UtcNow, userId, SanitizeLineEndings(response), null);
         }
 
         public static void QueryError(this ILogger logger, string cV, string userId, string response, Exception ex)
         {
-            _queryError(logger, cV, userId, SanitizeLineEndings(response), ex);
+            _queryError(logger, cV, DateTime.UtcNow, userId, SanitizeLineEndings(response), ex);
         }
 
         public static void ConsumeResponse(this ILogger logger, string cV, string userId, string response)
         {
-            _queryResponse(logger, cV, userId, SanitizeLineEndings(response), null);
+            _queryResponse(logger, cV, DateTime.UtcNow, userId, SanitizeLineEndings(response), null);
         }
 
         public static void ConsumeError(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity, string message, Exception ex)
@@ -249,7 +249,7 @@ namespace MicrosoftStoreServicesSample
 
         public static void RetryPendingConsumesResponse(this ILogger logger, string cV, string response)
         {
-            _retryPendingConsumesResponse(logger, cV, SanitizeLineEndings(response), null);
+            _retryPendingConsumesResponse(logger, cV, DateTime.UtcNow, SanitizeLineEndings(response), null);
         }
     }
 }
