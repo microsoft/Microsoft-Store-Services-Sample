@@ -243,7 +243,7 @@ namespace MicrosoftStoreServicesSample
         }
 
         /// <summary>
-        /// Utility function to print the header of the coumns for the text format of event messages 
+        /// Utility function to print the header of the columns for the text format of event messages 
         /// test endpoints
         /// </summary>
         /// <returns></returns>
