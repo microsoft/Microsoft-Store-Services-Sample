@@ -201,8 +201,11 @@ namespace MicrosoftStoreServicesSample
                                     response.AppendFormat("INFO: {0}\n", logMessage);
                                     numDeleted++;
                                 }
-
-                                
+                                else
+                                {
+                                    logMessage = $"Unexpected http result {result} when deleting MessageId {currentMessage.MessageId} from the queue";
+                                    throw new Exception(logMessage);
+                                }
                             }
                             catch (Exception ex)
                             {
