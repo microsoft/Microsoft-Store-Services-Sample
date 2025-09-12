@@ -7,6 +7,7 @@
 // license information.
 //-----------------------------------------------------------------------------
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CorrelationVector;
 using Microsoft.Extensions.Logging;
@@ -58,7 +59,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             //  This allows the API controllers (or subsequent delegates in the flow) to access it.
             //  We also stamp our response with the cV here in case something goes wrong to ensure
             //  it gets back to the client for lookup later
-            this.HttpContext.Response.Headers.Add("MS-CV", _cV.Value);
+            this.HttpContext.Response.Headers.Append("MS-CV", _cV.Value);
         }
 
         /// <summary>
@@ -68,7 +69,7 @@ namespace MicrosoftStoreServicesSample.Controllers
         {
             this.HttpContext.Items["MS-CV"] = _cV.Value;
             this.HttpContext.Response.Headers.Remove("MS-CV");
-            this.HttpContext.Response.Headers.Add("MS-CV", _cV.Value);
+            this.HttpContext.Response.Headers.Append("MS-CV", _cV.Value);
         }
 
         /// <summary>

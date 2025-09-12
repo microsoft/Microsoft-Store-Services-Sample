@@ -67,7 +67,7 @@ namespace GameService.Logging
             //  We also stamp our response with the cV here in case something goes wrong to ensure
             //  it gets back to the client for lookup later
             httpContext.Items["MS-CV"] = cV;
-            httpContext.Response.Headers.Add("MS-CV", cV.Value);
+            httpContext.Response.Headers.Append("MS-CV", cV.Value);
             await _next(httpContext);
         }
     }
