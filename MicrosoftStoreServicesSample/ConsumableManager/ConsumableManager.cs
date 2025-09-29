@@ -237,7 +237,7 @@ namespace MicrosoftStoreServicesSample
             //  we have one, we can then cache the request parameters and replay
             //  the call to validate if the consume succeeded or not when we are
             //  able to communicate with the Microsoft Store APIs again.
-            if (pendingConsumeRequest.TrackingId==Guid.Empty)
+            if (pendingConsumeRequest.TrackingId == Guid.Empty)
             {
                 pendingConsumeRequest.TrackingId = Guid.NewGuid();
             }
