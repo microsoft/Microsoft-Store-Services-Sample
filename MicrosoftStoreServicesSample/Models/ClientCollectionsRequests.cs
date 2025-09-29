@@ -7,6 +7,7 @@
 // license information.
 //-----------------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.StoreServices
@@ -25,7 +26,7 @@ namespace Microsoft.StoreServices
         public string UserCollectionsId { get; set; }
         public uint Quantity { get; set; }
         public string ProductId { get; set; }
-        public string TransactionId { get; set; }
+        public Guid TransactionId { get; set; }
         public string UserId { get; set; }
         public bool IsUnmanagedConsumable { get; set; } = false;
         public bool IncludeOrderIds { get; set; } = false;

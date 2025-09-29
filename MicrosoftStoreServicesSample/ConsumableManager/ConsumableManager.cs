@@ -237,9 +237,9 @@ namespace MicrosoftStoreServicesSample
             //  we have one, we can then cache the request parameters and replay
             //  the call to validate if the consume succeeded or not when we are
             //  able to communicate with the Microsoft Store APIs again.
-            if (string.IsNullOrEmpty(pendingConsumeRequest.TrackingId))
+            if (pendingConsumeRequest.TrackingId==Guid.Empty)
             {
-                pendingConsumeRequest.TrackingId = Guid.NewGuid().ToString();
+                pendingConsumeRequest.TrackingId = Guid.NewGuid();
             }
 
             ValidatePendingConsumeRequest(pendingConsumeRequest);
@@ -274,7 +274,7 @@ namespace MicrosoftStoreServicesSample
             {
                 throw new ArgumentException("No Beneficiary.UserCollectionsId in request", nameof(request));
             }
-            if (string.IsNullOrEmpty(request.TrackingId))
+            if (request.TrackingId == Guid.Empty)
             {
                 throw new ArgumentException("No TrackingId in request", nameof(request));
             }

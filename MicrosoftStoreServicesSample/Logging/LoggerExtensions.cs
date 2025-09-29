@@ -212,19 +212,19 @@ namespace MicrosoftStoreServicesSample
             _collectionsInvalidRequest(logger, cV, DateTime.UtcNow, userId, error, urlPath, null);
         }
 
-        public static void AddPendingTransaction(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity )
+        public static void AddPendingTransaction(this ILogger logger, string cV, string userId, Guid transactionId, string productId, uint quantity )
         {
-            _addPendingTransaction(logger, cV, DateTime.UtcNow, userId, transactionId, productId, quantity, null);
+            _addPendingTransaction(logger, cV, DateTime.UtcNow, userId, transactionId.ToString(), productId, quantity, null);
         }
 
-        public static void AddUserPurchaseIdToClawbackQueue(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity)
+        public static void AddUserPurchaseIdToClawbackQueue(this ILogger logger, string cV, string userId, Guid transactionId, string productId, uint quantity)
         {
-            _addUserPurchaseIdToClawbackQueue(logger, cV, DateTime.UtcNow, userId, transactionId, productId, quantity, null);
+            _addUserPurchaseIdToClawbackQueue(logger, cV, DateTime.UtcNow, userId, transactionId.ToString(), productId, quantity, null);
         }
 
-        public static void RemovePendingTransaction(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity)
+        public static void RemovePendingTransaction(this ILogger logger, string cV, string userId, Guid transactionId, string productId, uint quantity)
         {
-            _removePendingTransaction(logger, cV, DateTime.UtcNow, userId, transactionId, productId, quantity, null);
+            _removePendingTransaction(logger, cV, DateTime.UtcNow, userId, transactionId.ToString(), productId, quantity, null);
         }
 
         public static void QueryResponse(this ILogger logger, string cV, string userId, string response)
@@ -242,9 +242,9 @@ namespace MicrosoftStoreServicesSample
             _queryResponse(logger, cV, DateTime.UtcNow, userId, SanitizeLineEndings(response), null);
         }
 
-        public static void ConsumeError(this ILogger logger, string cV, string userId, string transactionId, string productId, uint quantity, string message, Exception ex)
+        public static void ConsumeError(this ILogger logger, string cV, string userId, Guid transactionId, string productId, uint quantity, string message, Exception ex)
         {
-            _consumeError(logger, cV, userId, transactionId, productId, quantity, SanitizeLineEndings(message), ex);
+            _consumeError(logger, cV, userId, transactionId.ToString(), productId, quantity, SanitizeLineEndings(message), ex);
         }
 
         public static void RetryPendingConsumesResponse(this ILogger logger, string cV, string response)

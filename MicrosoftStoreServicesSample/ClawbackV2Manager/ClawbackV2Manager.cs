@@ -256,9 +256,9 @@ namespace MicrosoftStoreServicesSample
 
             response.Insert(0,
                     "\n" +
-                    "| ProductId    | Sandbox    | EventState | Source               | OrderId                              | LineItemId                           | Purchase Date                 | Refund Initiated Date         | Inserted On                   | Message Id                           | Clawback Event Id                    | Sub. Start Date               | Sub. Days | Sub. Used Days | Sub. Refund Type |\r\n"
+                    "| ProductId    | Product Type        | Sandbox    | EventState | Source               | OrderId                              | LineItemId                           | Purchase Date                 | Refund Initiated Date         | Inserted On                   | Message Id                           | Clawback Event Id                    | Sub. Start Date               | Sub. Days | Sub. Used Days | Sub. Refund Type |\r\n"
                         +
-                    "|--------------|------------|------------|----------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|-------------------------------|-----------|----------------|------------------|\r\n"
+                    "|--------------|---------------------|------------|------------|----------------------|--------------------------------------|--------------------------------------|-------------------------------|-------------------------------|-------------------------------|--------------------------------------|--------------------------------------|-------------------------------|-----------|----------------|------------------|\r\n"
                     );
 
             return response.ToString();
@@ -274,6 +274,7 @@ namespace MicrosoftStoreServicesSample
         {
             // Column width constants for output formatting
             const int ProductIdWidth = 12;
+            const int ProductTypeWidth = 19;
             const int SandboxIdWidth = 10;
             const int EventStateWidth = 10;
             const int SourceWidth = 20;
@@ -307,8 +308,9 @@ namespace MicrosoftStoreServicesSample
                 }
 
                 response.AppendFormat(
-                    "| {0,-" + ProductIdWidth + "} | {1,-" + SandboxIdWidth + "} | {2,-" + EventStateWidth + "} | {3,-" + SourceWidth + "} | {4,-" + OrderIdWidth + "} | {5,-" + LineItemIdWidth + "} | {6,-" + PurchasedDateWidth + "} | {7,-" + EventDateWidth + "} | {8,-" + InsertedOnWidth + "} | {9,-" + MessageIdWidth + "} | {10,-" + ClawbackEventIdWidth + "} | {11,-" + SubStartWidth + "} | {12,-" + SubTotalDaysWidth + "} | {13,-" + SubUsedDaysWidth + "} | {14,-" + SubRefundTypeWidth + "} |\r\n",
+                    "| {0,-" + ProductIdWidth + "} | {1,-" + ProductTypeWidth + "} | {2,-" + SandboxIdWidth + "} | {3,-" + EventStateWidth + "} | {4,-" + SourceWidth + "} | {5,-" + OrderIdWidth + "} | {6,-" + LineItemIdWidth + "} | {7,-" + PurchasedDateWidth + "} | {8,-" + EventDateWidth + "} | {9,-" + InsertedOnWidth + "} | {10,-" + MessageIdWidth + "} | {11,-" + ClawbackEventIdWidth + "} | {12,-" + SubStartWidth + "} | {13,-" + SubTotalDaysWidth + "} | {14,-" + SubUsedDaysWidth + "} | {15,-" + SubRefundTypeWidth + "} |\r\n",
                     clawbackMessage.ClawbackEvent.OrderInfo.ProductId,
+                    clawbackMessage.ClawbackEvent.OrderInfo.ProductType,
                     clawbackMessage.ClawbackEvent.OrderInfo.SandboxId,
                     clawbackMessage.ClawbackEvent.OrderInfo.EventState,
                     clawbackMessage.ClawbackEvent.Source,
