@@ -94,7 +94,7 @@ namespace MicrosoftStoreServicesSample
                     //  So, we keep this consume pending to retry and verify it later
                     _logger.ConsumeError(cV.Value,
                                          request.UserId,
-                                         request.TrackingId,
+                                         request.TrackingId.ToString(),
                                          request.ProductId,
                                          request.RemoveQuantity,
                                          "Error getting consume response, keeping request in the pending queue",
@@ -111,7 +111,7 @@ namespace MicrosoftStoreServicesSample
                     //  credit if it did go through.
                     _logger.ConsumeError(cV.Value,
                                          request.UserId,
-                                         request.TrackingId,
+                                         request.TrackingId.ToString(),
                                          request.ProductId,
                                          request.RemoveQuantity,
                                          "Consume was canceled, keeping request in the pending queue",
@@ -237,9 +237,9 @@ namespace MicrosoftStoreServicesSample
             //  we have one, we can then cache the request parameters and replay
             //  the call to validate if the consume succeeded or not when we are
             //  able to communicate with the Microsoft Store APIs again.
-            if (string.IsNullOrEmpty(pendingConsumeRequest.TrackingId))
+            if (pendingConsumeRequest.TrackingId == Guid.Empty)
             {
-                pendingConsumeRequest.TrackingId = Guid.NewGuid().ToString();
+                pendingConsumeRequest.TrackingId = Guid.NewGuid();
             }
 
             ValidatePendingConsumeRequest(pendingConsumeRequest);
@@ -274,7 +274,7 @@ namespace MicrosoftStoreServicesSample
             {
                 throw new ArgumentException("No Beneficiary.UserCollectionsId in request", nameof(request));
             }
-            if (string.IsNullOrEmpty(request.TrackingId))
+            if (request.TrackingId == Guid.Empty)
             {
                 throw new ArgumentException("No TrackingId in request", nameof(request));
             }
@@ -305,7 +305,7 @@ namespace MicrosoftStoreServicesSample
                         await dbContext.SaveChangesAsync();
                         _logger.AddPendingTransaction(cV.Increment(),
                                                       request.UserId,
-                                                      request.TrackingId,
+                                                      request.TrackingId.ToString(),
                                                       request.ProductId,
                                                       request.RemoveQuantity);
                     }
@@ -336,7 +336,7 @@ namespace MicrosoftStoreServicesSample
             }
             _logger.RemovePendingTransaction(cV.Increment(),
                                              request.UserId,
-                                             request.TrackingId,
+                                             request.TrackingId.ToString(),
                                              request.ProductId,
                                              request.RemoveQuantity);
         }

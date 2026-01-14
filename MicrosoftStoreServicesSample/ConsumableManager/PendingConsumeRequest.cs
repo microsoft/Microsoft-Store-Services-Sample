@@ -8,6 +8,7 @@
 //-----------------------------------------------------------------------------
 
 using Newtonsoft.Json;
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace MicrosoftStoreServicesSample
@@ -26,7 +27,7 @@ namespace MicrosoftStoreServicesSample
         /// so it is marked with virtual so it can be overridden.
         /// </summary>
         [Key]
-        public string TrackingId { get; set; }
+        public Guid TrackingId { get; set; }
 
         /// <summary>
         /// Unique Id for the user withing your system.

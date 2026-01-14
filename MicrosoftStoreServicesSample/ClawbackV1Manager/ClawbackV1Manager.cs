@@ -110,7 +110,7 @@ namespace MicrosoftStoreServicesSample
                 }
                 _logger.AddUserPurchaseIdToClawbackQueue(cV.Increment(),
                                    request.UserId,
-                                   request.TrackingId,
+                                   request.TrackingId.ToString(),
                                    request.ProductId,
                                    request.RemoveQuantity);
             }

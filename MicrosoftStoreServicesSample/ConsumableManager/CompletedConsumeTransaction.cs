@@ -34,7 +34,7 @@ namespace MicrosoftStoreServicesSample
         /// <summary>
         /// TrackingId used on the Consume request
         /// </summary>
-        public string TrackingId { get; set; }
+        public Guid TrackingId { get; set; }
 
         /// <summary>
         /// Time that the consume was fulfilled or verified
@@ -61,7 +61,7 @@ namespace MicrosoftStoreServicesSample
         /// <param name="productId"></param>
         /// <param name="trackingId"></param>
         /// <param name="transaction"></param>
-        public CompletedConsumeTransaction(string userId, string productId, string trackingId, ConsumeOrderTransactionContractV8 transaction)
+        public CompletedConsumeTransaction(string userId, string productId, Guid trackingId, ConsumeOrderTransactionContractV8 transaction)
         {
             this.TrackingId  = trackingId;
             this.ProductId   = productId;
