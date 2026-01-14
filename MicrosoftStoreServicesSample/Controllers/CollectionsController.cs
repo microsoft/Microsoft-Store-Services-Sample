@@ -544,7 +544,7 @@ namespace MicrosoftStoreServicesSample.Controllers
                 Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 _logger.ConsumeError(_cV.Value,
                                      GetUserId(),
-                                     pendingRequest.TrackingId,
+                                     pendingRequest.TrackingId.ToString(),
                                      pendingRequest.ProductId,
                                      pendingRequest.RemoveQuantity,
                                      ex.Message,
