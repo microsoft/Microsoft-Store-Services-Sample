@@ -490,7 +490,7 @@ namespace MicrosoftStoreServicesSample.Controllers
             {
                 //  We had a bad request so exit here
                 Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                _logger.ConsumeError(_cV.Value, GetUserId(), "", "", 0, ex.Message, ex);
+                _logger.ConsumeError(_cV.Value, GetUserId(), Guid.Empty, "", 0, ex.Message, ex);
                 return ex.Message;
             }
 
