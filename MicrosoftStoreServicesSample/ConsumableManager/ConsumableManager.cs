@@ -94,7 +94,7 @@ namespace MicrosoftStoreServicesSample
                     //  So, we keep this consume pending to retry and verify it later
                     _logger.ConsumeError(cV.Value,
                                          request.UserId,
-                                         request.TrackingId.ToString(),
+                                         request.TrackingId,
                                          request.ProductId,
                                          request.RemoveQuantity,
                                          "Error getting consume response, keeping request in the pending queue",
@@ -111,7 +111,7 @@ namespace MicrosoftStoreServicesSample
                     //  credit if it did go through.
                     _logger.ConsumeError(cV.Value,
                                          request.UserId,
-                                         request.TrackingId.ToString(),
+                                         request.TrackingId,
                                          request.ProductId,
                                          request.RemoveQuantity,
                                          "Consume was canceled, keeping request in the pending queue",
@@ -305,7 +305,7 @@ namespace MicrosoftStoreServicesSample
                         await dbContext.SaveChangesAsync();
                         _logger.AddPendingTransaction(cV.Increment(),
                                                       request.UserId,
-                                                      request.TrackingId.ToString(),
+                                                      request.TrackingId,
                                                       request.ProductId,
                                                       request.RemoveQuantity);
                     }
@@ -336,7 +336,7 @@ namespace MicrosoftStoreServicesSample
             }
             _logger.RemovePendingTransaction(cV.Increment(),
                                              request.UserId,
-                                             request.TrackingId.ToString(),
+                                             request.TrackingId,
                                              request.ProductId,
                                              request.RemoveQuantity);
         }
